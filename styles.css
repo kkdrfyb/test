@@ -91,14 +91,25 @@ main { flex: 1; min-height: 0; }
 .drop-title { font-size: 16px; margin-bottom: 6px; }
 .drop-sub { color: var(--muted); font-size: 13px; }
 
-.shelf-head { display: flex; align-items: center; gap: 10px; margin: 26px 0 12px; }
-.shelf-head h2 { font-size: 15px; margin: 0; font-weight: 600; }
+.shelf-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 26px 0 12px; }
+.shelf-head h2 { font-size: 15px; margin: 0; font-weight: 600; white-space: nowrap; }
 .muted { color: var(--muted); font-size: 12px; }
-.search-input {
-  margin-left: auto; width: 220px; max-width: 40vw;
-  padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px;
-  background: var(--surface); color: var(--text); font-size: 13px;
+.shelf-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.tab-btn {
+  border: none; background: var(--surface); color: var(--muted); cursor: pointer;
+  padding: 6px 12px; font-size: 13px; font-family: inherit; white-space: nowrap;
 }
+.tab-btn + .tab-btn { border-left: 1px solid var(--border); }
+.tab-btn.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.tab-count { font-size: 11px; opacity: .8; }
+.shelf-tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.search-input, .select-input {
+  padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit;
+}
+.search-input { width: 200px; max-width: 36vw; }
+.select-input { width: 108px; cursor: pointer; }
+.btn-view { padding: 6px 10px; }
 
 .book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
 .book-card {
@@ -113,11 +124,60 @@ main { flex: 1; min-height: 0; }
 .format-badge {
   display: inline-block; font-size: 10px; letter-spacing: .5px; font-weight: 600;
   color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 1px 5px;
+  white-space: nowrap;
 }
 .book-progress { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; margin-top: 2px; }
 .book-progress > div { height: 100%; background: var(--accent); }
 .delete-btn { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 12px; padding: 2px 4px; }
+.row-actions { display: flex; align-items: center; gap: 4px; }
+.row-btn {
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  cursor: pointer; font-size: 11px; font-family: inherit; padding: 3px 7px; border-radius: 6px;
+  white-space: nowrap;
+}
+.row-btn:hover { background: var(--surface-2); }
+.row-btn.danger { color: var(--danger); }
 .empty-state { text-align: center; color: var(--muted); padding: 40px 0; }
+
+/* 紧凑列表：一行一本，带名次序号，一屏能显示更多书。 */
+.book-list.list-view {
+  display: flex; flex-direction: column; gap: 0;
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+}
+.book-row {
+  display: grid;
+  grid-template-columns: 40px minmax(140px, 2fr) 48px minmax(150px, 1.4fr) 90px 40px auto;
+  align-items: center; gap: 10px; padding: 8px 12px;
+  background: var(--surface); border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.book-row:last-child { border-bottom: none; }
+.book-row:hover { background: var(--surface-2); }
+.book-row .book-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-rank { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.book-row .book-progress { margin-top: 0; }
+.book-row .book-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 彻底删除确认框 */
+.dialog-backdrop {
+  position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .45); padding: 20px;
+}
+.dialog {
+  width: min(520px, 100%); background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .25);
+}
+.dialog h3 { margin: 0 0 12px; font-size: 16px; }
+.dialog-warning { color: var(--danger); font-weight: 700; font-size: 13px; margin: 0 0 12px; }
+.dialog-label { color: var(--muted); font-size: 12px; margin: 0 0 4px; }
+.dialog-path {
+  font-size: 12px; word-break: break-all; background: var(--surface-2);
+  padding: 8px 10px; border-radius: 6px; margin: 0 0 12px;
+}
+.dialog p.muted { line-height: 1.6; margin: 0 0 16px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-danger:hover { filter: brightness(1.08); background: var(--danger); }
 
 #readerView { display: flex; flex-direction: column; position: relative; }
 .reader-bar {

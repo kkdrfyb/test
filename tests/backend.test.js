@@ -5,6 +5,10 @@ import {
   isDesktop,
   toArrayBuffer,
   getAllBooks,
+  getTrashBooks,
+  removeBook,
+  restoreBook,
+  purgeBook,
 } from '../src/backend.js';
 
 const sampleData = {
@@ -15,17 +19,38 @@ const sampleData = {
     { id: 'b', title: '1984', format: 'epub', path: 'D:/books/1984.epub', size: 2048, modifiedAt: 2 },
   ],
   progress: { a: { offset: 3.5, chapterIndex: 2, percent: 42, updatedAt: 1000 } },
+  recycled: [
+    { id: 'c', title: '已移除的书', format: 'txt', path: 'D:/books/已移除的书.txt', size: 512, modifiedAt: 3 },
+  ],
 };
 
 function makeDesktop(options = {}) {
   const calls = [];
   const bytes = new TextEncoder().encode('CHM-BYTES').buffer;
+  let libraryData = structuredClone(sampleData);
+  const snapshot = () => structuredClone(libraryData);
   const invoke = async (cmd, args) => {
     calls.push({ cmd, args });
     switch (cmd) {
-      case 'library_state': return structuredClone(sampleData);
+      case 'library_state': return snapshot();
       case 'read_book': return bytes;
-      case 'scan_library': return { ...structuredClone(sampleData), root: args.root || sampleData.root };
+      case 'scan_library':
+        libraryData = { ...structuredClone(sampleData), root: args.root || sampleData.root };
+        return snapshot();
+      case 'remove_book': {
+        const index = libraryData.books.findIndex((book) => book.id === args.id);
+        if (index >= 0) libraryData.recycled.push(libraryData.books.splice(index, 1)[0]);
+        return snapshot();
+      }
+      case 'restore_book': {
+        const index = libraryData.recycled.findIndex((book) => book.id === args.id);
+        if (index >= 0) libraryData.books.push(libraryData.recycled.splice(index, 1)[0]);
+        return snapshot();
+      }
+      case 'purge_book':
+        libraryData.recycled = libraryData.recycled.filter((book) => book.id !== args.id);
+        delete libraryData.progress[args.id];
+        return snapshot();
       case 'get_settings': return { theme: 'dark', fontSize: 20 };
       case 'save_progress':
       case 'save_settings': return null;
@@ -145,7 +170,32 @@ test('pickLibraryDir 处理单选、数组与取消三种返回', async () => {
   assert.equal(await makeDesktop({ picked: null }).backend.pickLibraryDir(), null);
 });
 
-test('桌面模式禁止写入/删除操作，避免改动磁盘上的原书', async () => {
+test('桌面回收站：移除、恢复、彻底删除都同步索引缓存', async () => {
+  const { backend, calls } = makeDesktop();
+  const trash = await backend.getTrashBooks();
+  assert.equal(trash.length, 1);
+  assert.equal(trash[0].title, '已移除的书');
+  assert.equal(trash[0].path, 'D:/books/已移除的书.txt', '彻底删除确认框需要展示原路径');
+
+  await backend.removeBook('a');
+  assert.deepEqual(calls.find((c) => c.cmd === 'remove_book').args, { id: 'a' });
+  assert.equal((await backend.getAllBooks()).length, 1, '移除后书架不再包含 a');
+  assert.equal((await backend.getTrashBooks()).length, 2);
+
+  await backend.restoreBook('a');
+  assert.deepEqual(calls.find((c) => c.cmd === 'restore_book').args, { id: 'a' });
+  assert.equal((await backend.getAllBooks()).length, 2, '恢复后回到书架');
+
+  await backend.removeBook('a');
+  await backend.purgeBook('a', true);
+  assert.deepEqual(calls.find((c) => c.cmd === 'purge_book').args,
+    { id: 'a', deleteFile: true }, 'Tauri 把 delete_file 映射为 deleteFile');
+  assert.equal((await backend.getTrashBooks()).length, 1);
+  assert.equal((await backend.getAllBooks()).find((b) => b.id === 'a'), undefined);
+  assert.equal((await backend.getAllBooks()).find((b) => b.id === 'a')?.percent, undefined);
+});
+
+test('桌面模式禁止导入与写入，删除必须走回收站命令', async () => {
   const { backend } = makeDesktop();
   await assert.rejects(() => backend.putBook({}), /书库目录管理/);
   await assert.rejects(() => backend.putFile('a', new ArrayBuffer(1)), /按需读取/);
@@ -153,5 +203,10 @@ test('桌面模式禁止写入/删除操作，避免改动磁盘上的原书', a
 });
 
 test('无 Tauri 环境时模块级接口仍走浏览器 IndexedDB 分支', async () => {
-  await assert.rejects(() => getAllBooks(), /IndexedDB/);
+  for (const method of [getAllBooks, getTrashBooks]) {
+    await assert.rejects(() => method(), /IndexedDB/);
+  }
+  for (const method of [removeBook, restoreBook, purgeBook]) {
+    await assert.rejects(() => method('a'), /IndexedDB/, '回收站接口必须落到浏览器后端');
+  }
 });

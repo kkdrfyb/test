@@ -11,4 +11,12 @@
 | @tauri-apps/plugin-dialog | 2.8.4 | Apache-2.0 OR MIT | 桌面窗口选择书库目录 | `licenses/tauri-MIT.txt`、`licenses/tauri-APACHE-2.0.txt` |
 | esbuild | 0.28.2 | MIT | 仅开发期打包工具，不进入运行时产物 | — |
 
+## Rust 桌面端依赖
+
+下列组件只在 `desktop` feature 下编译，不进入浏览器产物：
+
+| 组件 | 版本 | 许可 | 用途 |
+|---|---|---|---|
+| trash | 5.3.0 | MIT | 彻底删除书籍时把原文件移入系统回收站（可恢复），不做永久删除 |
+
 重新生成产物：先 `npm install`，再运行 `npm run build:vendor`。

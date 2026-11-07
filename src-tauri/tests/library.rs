@@ -177,6 +177,99 @@ fn 重新扫描目录保留旧进度并纳入新增书籍() {
 }
 
 #[test]
+fn 移除进入回收站后可恢复且重新扫描不会再出现() {
+    let temp = TempDir::new("recycle");
+    fs::write(temp.path().join("甲书.txt"), "甲").unwrap();
+    fs::write(temp.path().join("乙书.txt"), "乙").unwrap();
+    let index = temp.path().join("library.json");
+
+    let mut library = Library::open(temp.path()).unwrap();
+    library.scan().unwrap();
+    let id = library.books().iter().find(|book| book.title == "甲书").unwrap().id.clone();
+    library.set_progress(id.clone(), Progress::new(3.0, 1, 20.0));
+
+    let removed = library.remove_book(&id).unwrap();
+    assert_eq!(removed.title, "甲书");
+    assert_eq!(library.books().len(), 1);
+    assert_eq!(library.recycled().len(), 1);
+    assert_eq!(library.get_progress(&id).unwrap().offset, 3.0, "软删除必须保留进度");
+    assert!(Path::new(&removed.path).exists(), "库层移除不能碰磁盘文件");
+    library.save(&index).unwrap();
+
+    // 文件仍在磁盘上，但重扫必须继续排除它。
+    let previous = load_data(&index).unwrap();
+    let mut rescanned = Library::from_data(LibraryData {
+        root: temp.path().to_string_lossy().into_owned(),
+        ..previous
+    }).unwrap();
+    assert_eq!(rescanned.scan().unwrap(), 1);
+    assert!(rescanned.books().iter().all(|book| book.id != id));
+
+    let restored = rescanned.restore_book(&id).unwrap();
+    assert_eq!(restored.title, "甲书");
+    assert_eq!(rescanned.books().len(), 2);
+    assert_eq!(rescanned.get_progress(&id).unwrap().offset, 3.0, "恢复后进度还在");
+    assert!(rescanned.recycled().is_empty());
+}
+
+#[test]
+fn 彻底删除清除记录与进度但库层不删文件() {
+    let temp = TempDir::new("purge");
+    fs::write(temp.path().join("待删.txt"), "正文").unwrap();
+    let mut library = Library::open(temp.path()).unwrap();
+    library.scan().unwrap();
+    let id = library.books()[0].id.clone();
+    library.set_progress(id.clone(), Progress::new(9.0, 2, 45.0));
+
+    library.remove_book(&id).unwrap();
+    let purged = library.purge_book(&id).unwrap();
+    assert_eq!(purged.title, "待删");
+    assert!(library.recycled().is_empty());
+    assert!(library.get_progress(&id).is_none());
+    assert!(Path::new(&purged.path).exists(), "磁盘文件由命令层按需处理");
+    assert!(matches!(library.purge_book(&id), Err(LibraryError::UnknownBook(_))));
+}
+
+#[test]
+fn 回收站随索引往返且旧版本索引可兼容() {
+    let temp = TempDir::new("recycle-json");
+    fs::write(temp.path().join("旧书.txt"), "正文").unwrap();
+    let mut library = Library::open(temp.path()).unwrap();
+    library.scan().unwrap();
+    let id = library.books()[0].id.clone();
+    library.remove_book(&id).unwrap();
+
+    let data = library.to_data();
+    assert_eq!(data.recycled.len(), 1);
+    let json = serde_json::to_string(&data).unwrap();
+    assert_eq!(serde_json::from_str::<LibraryData>(&json).unwrap(), data);
+
+    let legacy: LibraryData = serde_json::from_str(
+        r#"{"version":1,"root":"","books":[],"progress":{}}"#,
+    ).unwrap();
+    assert!(legacy.recycled.is_empty(), "缺少 recycled 字段的旧索引要能正常读取");
+}
+
+#[test]
+fn 彻底删除前的路径解析拒绝书库外文件() {
+    let temp = TempDir::new("recycle-path");
+    let root = temp.path().join("library");
+    fs::create_dir_all(&root).unwrap();
+    let inside = root.join("书.txt");
+    fs::write(&inside, "正文").unwrap();
+    let outside = temp.path().join("书库外.txt");
+    fs::write(&outside, "不能删").unwrap();
+
+    let library = Library::open(&root).unwrap();
+    assert!(library.resolve_book_path(inside.to_str().unwrap()).unwrap().exists());
+    assert!(matches!(
+        library.resolve_book_path(outside.to_str().unwrap()),
+        Err(LibraryError::OutsideLibrary(_))
+    ));
+    assert!(outside.exists(), "越界校验不能改动外部文件");
+}
+
+#[test]
 fn 阅读设置独立持久化且缺省为空对象() {
     let temp = TempDir::new("settings");
     let path = temp.path().join("settings.json");

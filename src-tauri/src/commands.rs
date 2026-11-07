@@ -83,6 +83,58 @@ pub fn save_progress(
     library.save(&state.data_path).map_err(|e| e.to_string())
 }
 
+/** 从书架移入应用内回收站：只改索引，磁盘文件与阅读进度都保留。 */
+#[tauri::command]
+pub fn remove_book(id: String, state: State<'_, DesktopState>) -> Result<LibraryData, String> {
+    let mut guard = library_guard(&state)?;
+    let library = guard.as_mut().ok_or_else(|| "请先选择书库目录".to_string())?;
+    library.remove_book(&id).map_err(|e| e.to_string())?;
+    library.save(&state.data_path).map_err(|e| e.to_string())?;
+    Ok(data_of(&*guard))
+}
+
+#[tauri::command]
+pub fn restore_book(id: String, state: State<'_, DesktopState>) -> Result<LibraryData, String> {
+    let mut guard = library_guard(&state)?;
+    let library = guard.as_mut().ok_or_else(|| "请先选择书库目录".to_string())?;
+    library.restore_book(&id).map_err(|e| e.to_string())?;
+    library.save(&state.data_path).map_err(|e| e.to_string())?;
+    Ok(data_of(&*guard))
+}
+
+/**
+ * 彻底删除：清掉回收站记录与进度。
+ * `deleteFile` 为 true 时，额外把原文件移入系统回收站（可恢复，绝不永久删除）；
+ * 路径必须先经 `resolve_book_path` 校验仍在书库内，避免误删书库外的文件。
+ */
+#[tauri::command]
+pub fn purge_book(
+    id: String,
+    delete_file: bool,
+    state: State<'_, DesktopState>,
+) -> Result<LibraryData, String> {
+    let resolved = if delete_file {
+        let guard = library_guard(&state)?;
+        let library = guard.as_ref().ok_or_else(|| "请先选择书库目录".to_string())?;
+        let book = library.recycled().iter().find(|item| item.id == id)
+            .ok_or_else(|| "回收站中没有这本书".to_string())?;
+        Some(library.resolve_book_path(&book.path).map_err(|e| e.to_string())?)
+    } else {
+        None
+    };
+    if let Some(path) = resolved {
+        if path.exists() {
+            trash::delete(&path).map_err(|e| format!("移入系统回收站失败：{e}"))?;
+        }
+    }
+
+    let mut guard = library_guard(&state)?;
+    let library = guard.as_mut().ok_or_else(|| "请先选择书库目录".to_string())?;
+    library.purge_book(&id).map_err(|e| e.to_string())?;
+    library.save(&state.data_path).map_err(|e| e.to_string())?;
+    Ok(data_of(&*guard))
+}
+
 #[tauri::command]
 pub fn get_settings(state: State<'_, DesktopState>) -> Result<Value, String> {
     Ok(lock(&state.settings)?.clone())

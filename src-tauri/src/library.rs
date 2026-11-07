@@ -8,7 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fs;
 use std::io;
@@ -86,6 +86,10 @@ pub struct LibraryData {
     pub books: Vec<Book>,
     #[serde(default)]
     pub progress: BTreeMap<String, Progress>,
+    /// 应用内回收站：从书架移除的书仍保留元数据，可恢复或彻底删除。
+    /// 扫描目录时会按 id 排除这些书，避免"删掉后重新扫描又出现"。
+    #[serde(default)]
+    pub recycled: Vec<Book>,
 }
 
 #[derive(Debug)]
@@ -257,6 +261,7 @@ pub struct Library {
     root_canonical: PathBuf,
     books: Vec<Book>,
     progress: BTreeMap<String, Progress>,
+    recycled: Vec<Book>,
 }
 
 impl Library {
@@ -278,12 +283,20 @@ impl Library {
             root_canonical: canonical,
             books: Vec::new(),
             progress: BTreeMap::new(),
+            recycled: Vec::new(),
         })
     }
 
     pub fn root(&self) -> &Path { &self.root_display }
 
     pub fn books(&self) -> &[Book] { &self.books }
+
+    pub fn recycled(&self) -> &[Book] { &self.recycled }
+
+    /** 把书库内的路径解析成真实路径并校验没有越界；彻底删除磁盘文件前必须先过这里。 */
+    pub fn resolve_book_path(&self, path: &str) -> Result<PathBuf, LibraryError> {
+        resolve_within(&self.root_canonical, Path::new(path))
+    }
 
     /** 递归扫描书库，只收录四种支持的格式；重复扫描不会丢失已有阅读进度。 */
     pub fn scan(&mut self) -> Result<usize, LibraryError> {
@@ -309,6 +322,9 @@ impl Library {
             });
         }
         books.sort_by(|a, b| natural_cmp(&a.title, &b.title).then_with(|| a.path.cmp(&b.path)));
+        // 回收站里的书即使文件还在磁盘上，也永远不再回到书架。
+        let removed: BTreeSet<&str> = self.recycled.iter().map(|book| book.id.as_str()).collect();
+        books.retain(|book| !removed.contains(book.id.as_str()));
         self.books = books;
         Ok(self.books.len())
     }
@@ -327,12 +343,48 @@ impl Library {
         self.progress.insert(id.into(), progress);
     }
 
+    /** 软删除：移入应用内回收站，阅读进度保留，恢复后能接着读。磁盘文件不受影响。 */
+    pub fn remove_book(&mut self, id: &str) -> Result<Book, LibraryError> {
+        let Some(index) = self.books.iter().position(|book| book.id == id) else {
+            return Err(LibraryError::UnknownBook(id.to_string()));
+        };
+        let book = self.books.remove(index);
+        if !self.recycled.iter().any(|item| item.id == book.id) {
+            self.recycled.push(book.clone());
+        }
+        Ok(book)
+    }
+
+    /** 从回收站恢复到书架；进度仍在，重新排序保持目录自然序。 */
+    pub fn restore_book(&mut self, id: &str) -> Result<Book, LibraryError> {
+        let Some(index) = self.recycled.iter().position(|book| book.id == id) else {
+            return Err(LibraryError::UnknownBook(id.to_string()));
+        };
+        let book = self.recycled.remove(index);
+        if !self.books.iter().any(|item| item.id == book.id) {
+            self.books.push(book.clone());
+            self.books.sort_by(|a, b| natural_cmp(&a.title, &b.title).then_with(|| a.path.cmp(&b.path)));
+        }
+        Ok(book)
+    }
+
+    /** 彻底删除：清除回收站记录与阅读进度，返回元数据供调用方决定是否处理磁盘文件。 */
+    pub fn purge_book(&mut self, id: &str) -> Result<Book, LibraryError> {
+        let Some(index) = self.recycled.iter().position(|book| book.id == id) else {
+            return Err(LibraryError::UnknownBook(id.to_string()));
+        };
+        let book = self.recycled.remove(index);
+        self.progress.remove(&book.id);
+        Ok(book)
+    }
+
     pub fn to_data(&self) -> LibraryData {
         LibraryData {
             version: 1,
             root: self.root_display.to_string_lossy().into_owned(),
             books: self.books.clone(),
             progress: self.progress.clone(),
+            recycled: self.recycled.clone(),
         }
     }
 
@@ -340,6 +392,7 @@ impl Library {
         let mut library = Self::open(&data.root)?;
         library.books = data.books;
         library.progress = data.progress;
+        library.recycled = data.recycled;
         Ok(library)
     }
 

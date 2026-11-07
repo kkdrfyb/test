@@ -47,6 +47,29 @@ test('样式表覆盖三种主题与四项阅读设置变量', async () => {
   assert.match(css, /\[hidden\]\s*\{\s*display:\s*none\s*!important/);
 });
 
+test('书架提供分类、排序、视图切换与彻底删除确认框', async () => {
+  const [html, css, app] = await Promise.all([
+    read('index.html'), read('styles.css'), read('src/app.js'),
+  ]);
+  for (const id of ['shelfTitle', 'shelfTabBtn', 'trashTabBtn', 'trashCount', 'sortSelect',
+    'viewToggleBtn', 'purgeDialog', 'purgeBookTitle', 'purgeBookPath', 'purgeCancelBtn',
+    'purgeRecordOnlyBtn', 'purgeFileBtn']) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  for (const value of ['recent', 'title', 'progress', 'size', 'format']) {
+    assert.match(html, new RegExp(`value="${value}"`));
+  }
+  assert.match(html, /此操作非常危险/, '彻底删除必须有明确警告');
+  assert.match(html, /移入系统回收站/, '文件删除只能进入系统回收站');
+  assert.match(css, /\.book-list\.list-view/);
+  assert.match(css, /\.book-row/);
+  assert.match(css, /\.dialog-backdrop/);
+  assert.match(app, /from '\.\/shelf\.js'/);
+  assert.match(app, /LIST_RENDER_LIMIT/);
+  assert.match(app, /purgeBook\(/);
+  assert.match(app, /createRow\(/);
+});
+
 test('package.json 提供 start、JS/Rust 测试与书库扫描脚本', async () => {
   const pkg = JSON.parse(await read('package.json'));
   assert.equal(pkg.type, 'module');

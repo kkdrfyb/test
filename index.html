@@ -27,13 +27,42 @@
           <div class="drop-sub">支持 TXT / EPUB / PDF / CHM，点击右上角「导入书籍」也可以；所有解析都在本地完成，文件不会上传</div>
         </div>
         <div class="shelf-head">
-          <h2>我的书架</h2>
-          <input id="searchInput" class="search-input" type="search" placeholder="按书名筛选…" aria-label="按书名筛选">
+          <h2 id="shelfTitle">我的书架</h2>
+          <div class="shelf-tabs" role="tablist" aria-label="书架分类">
+            <button id="shelfTabBtn" class="tab-btn active" type="button" role="tab">书架</button>
+            <button id="trashTabBtn" class="tab-btn" type="button" role="tab">回收站 <span id="trashCount" class="tab-count">0</span></button>
+          </div>
+          <div class="shelf-tools">
+            <input id="searchInput" class="search-input" type="search" placeholder="按书名筛选…" aria-label="按书名筛选">
+            <select id="sortSelect" class="select-input" aria-label="书籍排序">
+              <option value="recent">最近阅读</option>
+              <option value="title">书名</option>
+              <option value="progress">阅读进度</option>
+              <option value="size">文件大小</option>
+              <option value="format">格式</option>
+            </select>
+            <button id="viewToggleBtn" class="btn btn-view" type="button">列表视图</button>
+          </div>
           <span id="bookCount" class="muted"></span>
         </div>
         <div id="bookList" class="book-list"></div>
         <div id="emptyState" class="empty-state" hidden>书架空空的，先添加一本书吧。</div>
       </section>
+
+      <div id="purgeDialog" class="dialog-backdrop" hidden>
+        <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="purgeTitle">
+          <h3 id="purgeTitle">彻底删除《<span id="purgeBookTitle"></span>》</h3>
+          <p class="dialog-warning">⚠️ 此操作非常危险，可能导致不可逆的数据丢失！</p>
+          <p class="dialog-label">原文件路径</p>
+          <p id="purgeBookPath" class="dialog-path"></p>
+          <p class="muted">「仅清除记录」会保留磁盘文件，只是书架不再显示；「移入系统回收站」会把原文件放入 Windows 回收站（可恢复），同时清除书架记录。</p>
+          <div class="dialog-actions">
+            <button id="purgeCancelBtn" class="btn" type="button">取消</button>
+            <button id="purgeRecordOnlyBtn" class="btn" type="button">仅清除记录</button>
+            <button id="purgeFileBtn" class="btn btn-danger" type="button">移入系统回收站</button>
+          </div>
+        </div>
+      </div>
 
       <section id="readerView" class="view" hidden>
         <div class="reader-bar">

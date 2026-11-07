@@ -26,9 +26,11 @@ test('Cargo 把 Tauri 依赖隔离在可选 desktop feature 后面', async () =>
   const cargo = await read('src-tauri/Cargo.toml');
   assert.match(cargo, /\[\[bin\]\]\s*\nname = "jiandu"/);
   assert.match(cargo, /required-features = \["desktop"\]/);
-  assert.match(cargo, /desktop = \["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-build"\]/);
+  assert.match(cargo, /desktop = \["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-build", "dep:trash"\]/);
   assert.match(cargo, /tauri-build = \{ version = "2\.7\.4", optional = true \}/);
   assert.match(await read('src-tauri/build.rs'), /#\[cfg\(feature = "desktop"\)\]/);
+  assert.match(await read('src-tauri/build.rs'), /rerun-if-changed=\.\.\/dist/,
+    '静态资源变化必须让 Tauri 重新内嵌 frontendDist');
   assert.match(cargo, /tauri = \{ version = "2\.12\.5", optional = true \}/);
   assert.match(cargo, /tauri-plugin-dialog = \{ version = "2\.8\.4", optional = true \}/);
   assert.match(cargo, /name = "scan"/, '阶段 0 的命令行扫描工具必须保留');
@@ -41,13 +43,16 @@ test('main.rs 注册全部书库命令并仅在桌面 feature 下编译', async 
   const [main, lib, commands] = await Promise.all([
     read('src-tauri/src/main.rs'), read('src-tauri/src/lib.rs'), read('src-tauri/src/commands.rs'),
   ]);
-  for (const command of ['library_state', 'scan_library', 'read_book', 'save_progress', 'get_settings', 'save_settings']) {
+  for (const command of ['library_state', 'scan_library', 'read_book', 'save_progress',
+    'remove_book', 'restore_book', 'purge_book', 'get_settings', 'save_settings']) {
     assert.match(main, new RegExp(`commands::${command}`), `缺少命令注册 ${command}`);
   }
   assert.match(main, /tauri_plugin_dialog::init\(\)/);
   assert.match(lib, /#\[cfg\(feature = "desktop"\)\]\s*\npub mod commands;/);
   assert.match(commands, /Response::new\(bytes\)/, '二进制必须走 Raw IPC 而非 JSON 数组');
   assert.match(commands, /Library::from_data/, '重扫必须沿用旧进度');
+  assert.match(commands, /trash::delete\(&path\)/, '彻底删除文件只能移入系统回收站');
+  assert.match(commands, /resolve_book_path\(&book\.path\)/, '删除磁盘文件前必须校验路径未越界');
   assert.doesNotMatch(main, /cfg_attr\(not\(debug_assertions\)/,
     'debug 构建也必须隐藏控制台，否则双击 exe 会弹出空白命令行窗口');
   assert.match(main, /all\(target_os = "windows", not\(feature = "console"\)\)/);
@@ -73,8 +78,9 @@ test('vendor/tauri.mjs 自包含并导出 invoke / open', async () => {
 
 test('dist 复制脚本采用白名单，只含运行时需要的文件', async () => {
   const script = await read('scripts/build-desktop.mjs');
-  for (const file of ['index.html', 'styles.css', 'src/app.js', 'src/backend.js', 'src/db.js',
-    'src/formats.js', 'src/text.js', 'vendor/books.mjs', 'vendor/pdf.worker.mjs', 'vendor/tauri.mjs']) {
+  for (const file of ['index.html', 'styles.css',     'src/app.js', 'src/backend.js', 'src/db.js',
+    'src/formats.js', 'src/text.js', 'src/shelf.js',
+    'vendor/books.mjs', 'vendor/pdf.worker.mjs', 'vendor/tauri.mjs']) {
     assert.match(script, new RegExp(`'${file.replace(/\./g, '\\.')}'`), `白名单缺少 ${file}`);
   }
   assert.doesNotMatch(script, /node_modules|src-tauri/);
@@ -87,13 +93,16 @@ test('页面提供桌面书库控件且 app.js 改用统一适配层', async () 
   const [html, app, css] = await Promise.all([
     read('index.html'), read('src/app.js'), read('styles.css'),
   ]);
-  for (const id of ['desktopBar', 'scanBtn', 'libraryRootLabel', 'searchInput']) {
+  for (const id of ['desktopBar', 'scanBtn', 'libraryRootLabel', 'searchInput',
+    'sortSelect', 'viewToggleBtn', 'trashTabBtn', 'purgeDialog']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.match(app, /from '\.\/backend\.js'/);
   assert.doesNotMatch(app, /from '\.\/db\.js'/);
   assert.match(app, /pickLibraryDir|scanLibrary/);
   assert.match(app, /SHELF_RENDER_LIMIT/);
+  assert.match(app, /getTrashBooks|removeBook|restoreBook|purgeBook/,
+    '桌面书架必须接入应用内回收站');
   assert.match(css, /\.desktop-bar/);
   assert.match(css, /\.search-input/);
 });

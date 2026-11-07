@@ -17,6 +17,7 @@ const files = [
   'src/db.js',
   'src/formats.js',
   'src/text.js',
+  'src/shelf.js',
   'vendor/books.mjs',
   'vendor/pdf.worker.mjs',
   'vendor/tauri.mjs',

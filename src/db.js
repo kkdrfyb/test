@@ -45,7 +45,50 @@ export async function getAllBooks() {
   const db = await openDb();
   const tx = db.transaction('books', 'readonly');
   const books = await asPromise(tx.objectStore('books').getAll());
-  return books.sort((a, b) => (b.lastReadAt || b.addedAt) - (a.lastReadAt || a.addedAt));
+  return books.filter((book) => !book.removedAt)
+    .sort((a, b) => (b.lastReadAt || b.addedAt) - (a.lastReadAt || a.addedAt));
+}
+
+/** 回收站：只标记 removedAt，正文与原始字节都保留，随时可恢复。 */
+export async function getTrashBooks() {
+  const db = await openDb();
+  const tx = db.transaction('books', 'readonly');
+  const books = await asPromise(tx.objectStore('books').getAll());
+  return books.filter((book) => Boolean(book.removedAt))
+    .sort((a, b) => (b.removedAt || 0) - (a.removedAt || 0));
+}
+
+export async function removeBook(id) {
+  const db = await openDb();
+  const tx = db.transaction('books', 'readwrite');
+  const store = tx.objectStore('books');
+  const book = await asPromise(store.get(id));
+  if (book) {
+    book.removedAt = Date.now();
+    store.put(book);
+  }
+  await transactionDone(tx);
+}
+
+export async function restoreBook(id) {
+  const db = await openDb();
+  const tx = db.transaction('books', 'readwrite');
+  const store = tx.objectStore('books');
+  const book = await asPromise(store.get(id));
+  if (book) {
+    delete book.removedAt;
+    store.put(book);
+  }
+  await transactionDone(tx);
+}
+
+/** 彻底删除：连同原始字节一起清掉，浏览器预览模式没有磁盘文件可处理。 */
+export async function purgeBook(id) {
+  const db = await openDb();
+  const tx = db.transaction(['books', 'files'], 'readwrite');
+  tx.objectStore('books').delete(id);
+  tx.objectStore('files').delete(id);
+  await transactionDone(tx);
 }
 
 export async function getBook(id) {
@@ -62,12 +105,9 @@ export async function putBook(book) {
   return book;
 }
 
+/** 保留旧接口：硬删除，等价于彻底删除；书架 UI 现在走 removeBook/purgeBook。 */
 export async function deleteBook(id) {
-  const db = await openDb();
-  const tx = db.transaction(['books', 'files'], 'readwrite');
-  tx.objectStore('books').delete(id);
-  tx.objectStore('files').delete(id);
-  await transactionDone(tx);
+  return purgeBook(id);
 }
 
 export async function putFile(id, data) {

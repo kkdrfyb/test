@@ -36,6 +36,9 @@ fn main() {
             commands::scan_library,
             commands::read_book,
             commands::save_progress,
+            commands::remove_book,
+            commands::restore_book,
+            commands::purge_book,
             commands::get_settings,
             commands::save_settings,
         ])

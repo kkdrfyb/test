@@ -36,11 +36,15 @@ const desktopOnly = (message) => async () => { throw new Error(message); };
 const browserBackend = {
   isDesktop: () => false,
   getAllBooks: browser.getAllBooks,
+  getTrashBooks: browser.getTrashBooks,
   getBook: browser.getBook,
   getFile: browser.getFile,
   putBook: browser.putBook,
   putFile: browser.putFile,
   deleteBook: browser.deleteBook,
+  removeBook: browser.removeBook,
+  restoreBook: browser.restoreBook,
+  purgeBook: async (id) => browser.purgeBook(id),
   saveProgress: browser.saveProgress,
   getSettings: browser.getSettings,
   saveSettings: browser.saveSettings,
@@ -137,6 +141,31 @@ export function createDesktopBackend({ invoke, open, inspect = inspectFile }) {
       return meta ? (await ensureParsed(meta)).bytes : null;
     },
 
+    /** 桌面回收站来自 Rust 索引的 recycled 列表，磁盘文件仍在原处。 */
+    async getTrashBooks() {
+      await ensure();
+      return (cache.recycled || []).map(toView)
+        .sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'));
+    },
+
+    async removeBook(id) {
+      cache = await invoke('remove_book', { id });
+      parsed.delete(id);
+      return cache;
+    },
+
+    async restoreBook(id) {
+      cache = await invoke('restore_book', { id });
+      return cache;
+    },
+
+    /** deleteFile=true 时 Rust 会把原文件移入系统回收站（可恢复），绝不永久删除。 */
+    async purgeBook(id, deleteFile = false) {
+      cache = await invoke('purge_book', { id, deleteFile: Boolean(deleteFile) });
+      parsed.delete(id);
+      return cache;
+    },
+
     async saveProgress(id, offset, chapterIndex, percent) {
       // Tauri 2 会把 Rust 的 snake_case 参数自动映射为 camelCase。
       await invoke('save_progress', { id, offset, chapterIndex, percent });
@@ -193,11 +222,15 @@ function resolveBackend() {
 const call = async (method, ...args) => (await resolveBackend())[method](...args);
 
 export const getAllBooks = () => call('getAllBooks');
+export const getTrashBooks = () => call('getTrashBooks');
 export const getBook = (id) => call('getBook', id);
 export const getFile = (id) => call('getFile', id);
 export const putBook = (book) => call('putBook', book);
 export const putFile = (id, data) => call('putFile', id, data);
 export const deleteBook = (id) => call('deleteBook', id);
+export const removeBook = (id) => call('removeBook', id);
+export const restoreBook = (id) => call('restoreBook', id);
+export const purgeBook = (id, deleteFile = false) => call('purgeBook', id, deleteFile);
 export const saveProgress = (id, offset, chapterIndex, percent) =>
   call('saveProgress', id, offset, chapterIndex, percent);
 export const getSettings = (fallback) => call('getSettings', fallback);

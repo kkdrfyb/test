@@ -1,12 +1,16 @@
 import { computePercent, getChapterAt, getChapterText } from './text.js';
 import { inspectFile, createDocument, ACCEPT_ATTR } from './formats.js';
+import { filterBooks, sortBooks, bookUnit } from './shelf.js';
 import {
   getAllBooks,
+  getTrashBooks,
   getBook,
   putBook,
   putFile,
   getFile,
-  deleteBook,
+  removeBook,
+  restoreBook,
+  purgeBook,
   saveProgress,
   getSettings,
   saveSettings,
@@ -16,10 +20,14 @@ import {
   pickLibraryDir,
 } from './backend.js';
 
-const DEFAULTS = { fontSize: 18, lineHeight: 1.8, pageWidth: 760, theme: 'light', pdfScale: 1.2 };
+const DEFAULTS = {
+  fontSize: 18, lineHeight: 1.8, pageWidth: 760, theme: 'light', pdfScale: 1.2,
+  shelfMode: 'books', shelfView: 'card', sortBy: 'recent',
+};
 const MAX_TOC_ITEMS = 500;
-/** 大书库一次最多渲染 500 张卡片，其余通过书名筛选定位。 */
+/** 大书库限制单次渲染数量；紧凑列表密度高，可以多显示一倍。 */
 const SHELF_RENDER_LIMIT = 500;
+const LIST_RENDER_LIMIT = 1000;
 const $ = (id) => document.getElementById(id);
 const clamp = (value, min, max) => Math.min(Math.max(value, min), Math.max(min, max));
 
@@ -28,7 +36,12 @@ const els = {
   importBtn: $('importBtn'), fileInput: $('fileInput'), dropZone: $('dropZone'),
   bookList: $('bookList'), bookCount: $('bookCount'), emptyState: $('emptyState'),
   desktopBar: $('desktopBar'), scanBtn: $('scanBtn'), libraryRootLabel: $('libraryRootLabel'),
-  searchInput: $('searchInput'),
+  searchInput: $('searchInput'), sortSelect: $('sortSelect'), viewToggleBtn: $('viewToggleBtn'),
+  shelfTitle: $('shelfTitle'), shelfTabBtn: $('shelfTabBtn'), trashTabBtn: $('trashTabBtn'),
+  trashCount: $('trashCount'),
+  purgeDialog: $('purgeDialog'), purgeBookTitle: $('purgeBookTitle'), purgeBookPath: $('purgeBookPath'),
+  purgeCancelBtn: $('purgeCancelBtn'), purgeRecordOnlyBtn: $('purgeRecordOnlyBtn'),
+  purgeFileBtn: $('purgeFileBtn'),
   backBtn: $('backBtn'), readerBookTitle: $('readerBookTitle'),
   tocBtn: $('tocBtn'), settingsBtn: $('settingsBtn'),
   tocPanel: $('tocPanel'), tocList: $('tocList'), tocCloseBtn: $('tocCloseBtn'),
@@ -48,6 +61,7 @@ const state = {
   books: [],
   desktop: isDesktop(),
   search: '',
+  purgeId: null,
   current: null,
   doc: null,
   chapterIndex: 0,
@@ -110,76 +124,186 @@ function scheduleSettingsSave() {
 
 /* ------------------------------ 书架 ------------------------------ */
 
-async function refreshShelf() {
-  state.books = await getAllBooks();
-  const keyword = state.search.trim().toLowerCase();
-  const matched = keyword
-    ? state.books.filter((book) => book.title.toLowerCase().includes(keyword))
-    : state.books;
-  const visible = matched.slice(0, SHELF_RENDER_LIMIT);
-  els.bookCount.textContent = keyword
-    ? `共 ${state.books.length} 本 · 匹配 ${matched.length} 本`
-    : `共 ${state.books.length} 本`;
-  els.emptyState.hidden = matched.length > 0;
-  if (!matched.length) {
-    els.emptyState.textContent = keyword
-      ? '没有匹配的书名，换个关键词试试。'
-      : state.desktop
-        ? '书架空空的，点上方「选择书库目录」扫描本地书籍。'
-        : '书架空空的，导入一本 TXT / EPUB / PDF / CHM 试试吧。';
+function closePurgeDialog() {
+  state.purgeId = null;
+  els.purgeDialog.hidden = true;
+}
+
+function openPurgeDialog(book) {
+  state.purgeId = book.id;
+  els.purgeBookTitle.textContent = book.title;
+  els.purgeBookPath.textContent = book.path
+    || '（浏览器预览模式：内容保存在本地数据库，没有对应的磁盘文件）';
+  // 浏览器预览没有可删除的磁盘文件，只提供「仅清除记录」。
+  els.purgeFileBtn.hidden = !state.desktop || !book.path;
+  els.purgeDialog.hidden = false;
+}
+
+async function doPurge(deleteFile) {
+  const id = state.purgeId;
+  if (!id) return;
+  closePurgeDialog();
+  try {
+    await purgeBook(id, deleteFile);
+    await refreshShelf();
+    toast(deleteFile ? '已彻底删除，原文件已移入系统回收站' : '已从回收站清除（文件保留）');
+  } catch (error) {
+    showError(error);
   }
+}
 
-  const fragment = document.createDocumentFragment();
-  for (const book of visible) {
-    const card = document.createElement('div');
-    card.className = 'book-card';
-    card.addEventListener('click', () => openBook(book.id).catch(showError));
-
-    const head = document.createElement('div');
-    head.className = 'book-head';
-    const name = document.createElement('div');
-    name.className = 'book-name';
-    name.textContent = book.title;
-    const badge = document.createElement('span');
-    badge.className = 'format-badge';
-    badge.textContent = (book.format || 'txt').toUpperCase();
-    head.append(name, badge);
-
-    const meta = document.createElement('div');
-    meta.className = 'book-meta';
-    const unit = book.format === 'pdf' && book.total ? `${book.total} 页`
-      : book.chapters?.length ? `${book.chapters.length} 章`
-        : (book.format || 'txt').toUpperCase();
-    meta.textContent = `${formatSize(book.size)} · ${unit} · ${formatDate(book.lastReadAt)}`;
-
-    const bar = document.createElement('div');
-    bar.className = 'book-progress';
-    const fill = document.createElement('div');
-    fill.style.width = `${book.percent || 0}%`;
-    bar.append(fill);
-
-    const foot = document.createElement('div');
-    foot.className = 'book-foot';
+function createActions(book, inTrash, isList) {
+  const wrap = document.createElement('div');
+  wrap.className = isList ? 'row-actions' : 'book-foot';
+  if (!isList && !inTrash) {
     const percent = document.createElement('span');
     percent.className = 'book-meta';
     percent.textContent = `已读 ${book.percent || 0}%`;
-    foot.append(percent);
-    // 桌面书架只是路径索引，不能也不该删除磁盘上的原书。
-    if (!state.desktop) {
-      const del = document.createElement('button');
-      del.className = 'delete-btn';
-      del.type = 'button';
-      del.textContent = '删除';
-      del.addEventListener('click', (event) => {
-        event.stopPropagation();
-        if (!window.confirm(`确定从书架移除《${book.title}》吗？`)) return;
-        deleteBook(book.id).then(refreshShelf).catch(showError);
-      });
-      foot.append(del);
-    }
-    card.append(head, meta, bar, foot);
-    fragment.append(card);
+    wrap.append(percent);
   }
+  if (inTrash) {
+    const restore = document.createElement('button');
+    restore.className = 'row-btn';
+    restore.type = 'button';
+    restore.textContent = '恢复';
+    restore.addEventListener('click', (event) => {
+      event.stopPropagation();
+      restoreBook(book.id)
+        .then(refreshShelf)
+        .then(() => toast(`已恢复《${book.title}》`))
+        .catch(showError);
+    });
+    const purge = document.createElement('button');
+    purge.className = 'row-btn danger';
+    purge.type = 'button';
+    purge.textContent = '彻底删除';
+    purge.addEventListener('click', (event) => {
+      event.stopPropagation();
+      openPurgeDialog(book);
+    });
+    wrap.append(restore, purge);
+    return wrap;
+  }
+  const remove = document.createElement('button');
+  remove.className = 'row-btn';
+  remove.type = 'button';
+  remove.textContent = '移除';
+  remove.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (!window.confirm(`确定把《${book.title}》移到回收站吗？磁盘文件不会被删除。`)) return;
+    removeBook(book.id)
+      .then(refreshShelf)
+      .then(() => toast('已移入回收站'))
+      .catch(showError);
+  });
+  wrap.append(remove);
+  return wrap;
+}
+
+function createCard(book, inTrash) {
+  const card = document.createElement('div');
+  card.className = 'book-card';
+  card.dataset.id = book.id;
+  if (!inTrash) card.addEventListener('click', () => openBook(book.id).catch(showError));
+
+  const head = document.createElement('div');
+  head.className = 'book-head';
+  const name = document.createElement('div');
+  name.className = 'book-name';
+  name.textContent = book.title;
+  const badge = document.createElement('span');
+  badge.className = 'format-badge';
+  badge.textContent = (book.format || 'txt').toUpperCase();
+  head.append(name, badge);
+
+  const meta = document.createElement('div');
+  meta.className = 'book-meta';
+  meta.textContent = `${formatSize(book.size)} · ${bookUnit(book)} · ${formatDate(book.lastReadAt)}`;
+
+  const bar = document.createElement('div');
+  bar.className = 'book-progress';
+  const fill = document.createElement('div');
+  fill.style.width = `${book.percent || 0}%`;
+  bar.append(fill);
+
+  card.append(head, meta, bar, createActions(book, inTrash, false));
+  return card;
+}
+
+/** 紧凑列表：序号即当前排序下的名次，一行一本，明显比卡片更省空间。 */
+function createRow(book, index, inTrash) {
+  const row = document.createElement('div');
+  row.className = 'book-row';
+  row.dataset.id = book.id;
+  if (!inTrash) row.addEventListener('click', () => openBook(book.id).catch(showError));
+
+  const rank = document.createElement('span');
+  rank.className = 'book-rank';
+  rank.textContent = String(index + 1);
+
+  const name = document.createElement('span');
+  name.className = 'book-name';
+  name.textContent = book.title;
+  name.title = book.title;
+
+  const badge = document.createElement('span');
+  badge.className = 'format-badge';
+  badge.textContent = (book.format || 'txt').toUpperCase();
+
+  const meta = document.createElement('span');
+  meta.className = 'book-meta';
+  meta.textContent = `${formatSize(book.size)} · ${bookUnit(book)} · ${formatDate(book.lastReadAt)}`;
+
+  const bar = document.createElement('div');
+  bar.className = 'book-progress';
+  const fill = document.createElement('div');
+  fill.style.width = `${book.percent || 0}%`;
+  bar.append(fill);
+
+  const percent = document.createElement('span');
+  percent.className = 'book-meta';
+  percent.textContent = `${book.percent || 0}%`;
+
+  row.append(rank, name, badge, meta, bar, percent, createActions(book, inTrash, true));
+  return row;
+}
+
+async function refreshShelf() {
+  const inTrash = state.settings.shelfMode === 'trash';
+  const isList = state.settings.shelfView === 'list';
+  const [books, trash] = await Promise.all([getAllBooks(), getTrashBooks()]);
+  state.books = books;
+  const source = inTrash ? trash : books;
+  const matched = sortBooks(filterBooks(source, state.search), state.settings.sortBy);
+  const limit = isList ? LIST_RENDER_LIMIT : SHELF_RENDER_LIMIT;
+  const visible = matched.slice(0, limit);
+
+  els.bookList.classList.toggle('list-view', isList);
+  els.viewToggleBtn.textContent = isList ? '卡片视图' : '列表视图';
+  els.sortSelect.value = state.settings.sortBy;
+  els.shelfTitle.textContent = inTrash ? '回收站' : '我的书架';
+  els.shelfTabBtn.classList.toggle('active', !inTrash);
+  els.trashTabBtn.classList.toggle('active', inTrash);
+  els.trashCount.textContent = String(trash.length);
+  els.bookCount.textContent = state.search.trim()
+    ? `共 ${source.length} 本 · 匹配 ${matched.length} 本`
+    : `共 ${source.length} 本`;
+
+  els.emptyState.hidden = matched.length > 0;
+  if (!matched.length) {
+    els.emptyState.textContent = state.search.trim()
+      ? '没有匹配的书名，换个关键词试试。'
+      : inTrash
+        ? '回收站是空的。从书架移除的书会先放在这里，可恢复或彻底删除。'
+        : state.desktop
+          ? '书架空空的，点上方「选择书库目录」扫描本地书籍。'
+          : '书架空空的，导入一本 TXT / EPUB / PDF / CHM 试试吧。';
+  }
+
+  const fragment = document.createDocumentFragment();
+  visible.forEach((book, index) => {
+    fragment.append(isList ? createRow(book, index, inTrash) : createCard(book, inTrash));
+  });
   if (matched.length > visible.length) {
     const more = document.createElement('div');
     more.className = 'empty-state';
@@ -381,6 +505,15 @@ function backToShelf() {
 
 /* ------------------------------ 事件绑定 ------------------------------ */
 
+function switchShelfMode(mode) {
+  if (state.settings.shelfMode === mode) return;
+  state.settings.shelfMode = mode;
+  state.search = '';
+  els.searchInput.value = '';
+  scheduleSettingsSave();
+  refreshShelf().catch(showError);
+}
+
 function bindEvents() {
   els.importBtn.addEventListener('click', () => els.fileInput.click());
   els.fileInput.addEventListener('change', (event) => {
@@ -391,6 +524,24 @@ function bindEvents() {
   els.searchInput.addEventListener('input', (event) => {
     state.search = event.target.value;
     refreshShelf().catch(showError);
+  });
+  els.shelfTabBtn.addEventListener('click', () => switchShelfMode('books'));
+  els.trashTabBtn.addEventListener('click', () => switchShelfMode('trash'));
+  els.sortSelect.addEventListener('change', (event) => {
+    state.settings.sortBy = event.target.value;
+    scheduleSettingsSave();
+    refreshShelf().catch(showError);
+  });
+  els.viewToggleBtn.addEventListener('click', () => {
+    state.settings.shelfView = state.settings.shelfView === 'list' ? 'card' : 'list';
+    scheduleSettingsSave();
+    refreshShelf().catch(showError);
+  });
+  els.purgeCancelBtn.addEventListener('click', closePurgeDialog);
+  els.purgeRecordOnlyBtn.addEventListener('click', () => doPurge(false).catch(showError));
+  els.purgeFileBtn.addEventListener('click', () => doPurge(true).catch(showError));
+  els.purgeDialog.addEventListener('click', (event) => {
+    if (event.target === els.purgeDialog) closePurgeDialog();
   });
   els.scanBtn.addEventListener('click', async () => {
     try {
@@ -464,11 +615,13 @@ function bindEvents() {
     state.settings = { ...DEFAULTS };
     applySettings();
     scheduleSettingsSave();
+    refreshShelf().catch(showError);
     toast('已恢复默认阅读设置');
   });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
+      if (!els.purgeDialog.hidden) { closePurgeDialog(); return; }
       els.tocPanel.hidden = true;
       els.settingsPanel.hidden = true;
       return;
