@@ -59,7 +59,9 @@ test('README 的版本、下载与产物路径与实际配置一致', async () =
   assert.equal(config.productName, '简读');
   assert.match(readme, /https:\/\/github\.com\/kkdrfyb\/test\/releases\/latest/, 'Releases 下载入口');
   assert.match(readme, new RegExp(`\`${version}\``), 'README 应写明当前版本');
-  assert.match(readme, new RegExp(`简读_${version}_x64_zh-CN\\.msi`), 'MSI 文件名与打包配置一致');
+  assert.match(readme, new RegExp(`jiandu-${version}-x64-zh-CN\\.msi`), 'Release 附件名');
+  assert.match(readme, new RegExp(`简读_${version}_x64_zh-CN\\.msi`), '本地 MSI 产物名与打包配置一致');
+  assert.match(readme, /ASCII/, '需说明附件名与本地产物名不同的原因');
   assert.match(readme, /src-tauri\/target\/release\/jiandu\.exe/, '免安装 exe 路径');
   assert.match(readme, /src-tauri\/target\//, '需说明编译缓存不随程序分发');
   assert.match(readme, /cargo clean/, '需给出缓存清理方式');
