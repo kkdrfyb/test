@@ -1,0 +1,27 @@
+{
+  "productName": "简读",
+  "version": "0.2.0",
+  "identifier": "com.jiandu.reader",
+  "build": {
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "简读 · 本地书库",
+        "width": 1180,
+        "height": 800,
+        "minWidth": 860,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false
+  }
+}

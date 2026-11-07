@@ -1,0 +1,6 @@
+{
+  "identifier": "default",
+  "description": "主窗口：允许打开系统目录选择对话框，用于指定本地书库根目录",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:allow-open"]
+}

@@ -10,10 +10,16 @@ import {
   saveProgress,
   getSettings,
   saveSettings,
-} from './db.js';
+  isDesktop,
+  libraryRoot,
+  scanLibrary,
+  pickLibraryDir,
+} from './backend.js';
 
 const DEFAULTS = { fontSize: 18, lineHeight: 1.8, pageWidth: 760, theme: 'light', pdfScale: 1.2 };
 const MAX_TOC_ITEMS = 500;
+/** 大书库一次最多渲染 500 张卡片，其余通过书名筛选定位。 */
+const SHELF_RENDER_LIMIT = 500;
 const $ = (id) => document.getElementById(id);
 const clamp = (value, min, max) => Math.min(Math.max(value, min), Math.max(min, max));
 
@@ -21,6 +27,8 @@ const els = {
   shelfView: $('shelfView'), readerView: $('readerView'),
   importBtn: $('importBtn'), fileInput: $('fileInput'), dropZone: $('dropZone'),
   bookList: $('bookList'), bookCount: $('bookCount'), emptyState: $('emptyState'),
+  desktopBar: $('desktopBar'), scanBtn: $('scanBtn'), libraryRootLabel: $('libraryRootLabel'),
+  searchInput: $('searchInput'),
   backBtn: $('backBtn'), readerBookTitle: $('readerBookTitle'),
   tocBtn: $('tocBtn'), settingsBtn: $('settingsBtn'),
   tocPanel: $('tocPanel'), tocList: $('tocList'), tocCloseBtn: $('tocCloseBtn'),
@@ -38,6 +46,8 @@ const els = {
 
 const state = {
   books: [],
+  desktop: isDesktop(),
+  search: '',
   current: null,
   doc: null,
   chapterIndex: 0,
@@ -102,10 +112,25 @@ function scheduleSettingsSave() {
 
 async function refreshShelf() {
   state.books = await getAllBooks();
-  els.bookCount.textContent = `共 ${state.books.length} 本`;
-  els.emptyState.hidden = state.books.length > 0;
-  els.bookList.replaceChildren();
-  for (const book of state.books) {
+  const keyword = state.search.trim().toLowerCase();
+  const matched = keyword
+    ? state.books.filter((book) => book.title.toLowerCase().includes(keyword))
+    : state.books;
+  const visible = matched.slice(0, SHELF_RENDER_LIMIT);
+  els.bookCount.textContent = keyword
+    ? `共 ${state.books.length} 本 · 匹配 ${matched.length} 本`
+    : `共 ${state.books.length} 本`;
+  els.emptyState.hidden = matched.length > 0;
+  if (!matched.length) {
+    els.emptyState.textContent = keyword
+      ? '没有匹配的书名，换个关键词试试。'
+      : state.desktop
+        ? '书架空空的，点上方「选择书库目录」扫描本地书籍。'
+        : '书架空空的，导入一本 TXT / EPUB / PDF / CHM 试试吧。';
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const book of visible) {
     const card = document.createElement('div');
     card.className = 'book-card';
     card.addEventListener('click', () => openBook(book.id).catch(showError));
@@ -122,7 +147,9 @@ async function refreshShelf() {
 
     const meta = document.createElement('div');
     meta.className = 'book-meta';
-    const unit = book.format === 'pdf' ? `${book.total || 0} 页` : `${book.chapters?.length || 0} 章`;
+    const unit = book.format === 'pdf' && book.total ? `${book.total} 页`
+      : book.chapters?.length ? `${book.chapters.length} 章`
+        : (book.format || 'txt').toUpperCase();
     meta.textContent = `${formatSize(book.size)} · ${unit} · ${formatDate(book.lastReadAt)}`;
 
     const bar = document.createElement('div');
@@ -136,22 +163,37 @@ async function refreshShelf() {
     const percent = document.createElement('span');
     percent.className = 'book-meta';
     percent.textContent = `已读 ${book.percent || 0}%`;
-    const del = document.createElement('button');
-    del.className = 'delete-btn';
-    del.type = 'button';
-    del.textContent = '删除';
-    del.addEventListener('click', (event) => {
-      event.stopPropagation();
-      if (!window.confirm(`确定从书架移除《${book.title}》吗？`)) return;
-      deleteBook(book.id).then(refreshShelf).catch(showError);
-    });
-    foot.append(percent, del);
+    foot.append(percent);
+    // 桌面书架只是路径索引，不能也不该删除磁盘上的原书。
+    if (!state.desktop) {
+      const del = document.createElement('button');
+      del.className = 'delete-btn';
+      del.type = 'button';
+      del.textContent = '删除';
+      del.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (!window.confirm(`确定从书架移除《${book.title}》吗？`)) return;
+        deleteBook(book.id).then(refreshShelf).catch(showError);
+      });
+      foot.append(del);
+    }
     card.append(head, meta, bar, foot);
-    els.bookList.append(card);
+    fragment.append(card);
   }
+  if (matched.length > visible.length) {
+    const more = document.createElement('div');
+    more.className = 'empty-state';
+    more.textContent = `仅显示前 ${visible.length} 本，输入书名关键词可快速筛选其余 ${matched.length - visible.length} 本。`;
+    fragment.append(more);
+  }
+  els.bookList.replaceChildren(fragment);
 }
 
 async function handleFiles(files) {
+  if (state.desktop) {
+    toast('桌面版通过「选择书库目录」管理书籍，不需要导入文件');
+    return;
+  }
   let imported = 0;
   for (const file of [...files]) {
     try {
@@ -346,6 +388,26 @@ function bindEvents() {
     event.target.value = '';
   });
 
+  els.searchInput.addEventListener('input', (event) => {
+    state.search = event.target.value;
+    refreshShelf().catch(showError);
+  });
+  els.scanBtn.addEventListener('click', async () => {
+    try {
+      const dir = await pickLibraryDir();
+      if (!dir) return;
+      toast('正在扫描书库目录…');
+      const data = await scanLibrary(dir);
+      state.search = '';
+      els.searchInput.value = '';
+      await refreshShelf();
+      els.libraryRootLabel.textContent = `书库：${data?.root || dir}`;
+      toast(`已索引 ${data?.books?.length ?? 0} 本书`);
+    } catch (error) {
+      showError(error);
+    }
+  });
+
   for (const type of ['dragenter', 'dragover']) {
     els.dropZone.addEventListener(type, (event) => {
       event.preventDefault();
@@ -429,6 +491,13 @@ async function init() {
   state.settings = await getSettings(DEFAULTS);
   applySettings();
   bindEvents();
+  if (state.desktop) {
+    els.importBtn.hidden = true;
+    els.dropZone.hidden = true;
+    els.desktopBar.hidden = false;
+    const root = await libraryRoot();
+    els.libraryRootLabel.textContent = root ? `书库：${root}` : '尚未选择书库目录，点击左侧按钮指定文件夹';
+  }
   await refreshShelf();
 }
 
@@ -436,6 +505,6 @@ init().catch((error) => {
   showError(error);
   const hint = document.createElement('div');
   hint.className = 'empty-state';
-  hint.textContent = '初始化失败：请通过 npm start 启动本地服务后用浏览器访问，不要直接双击打开 HTML 文件。';
+  hint.textContent = '初始化失败：浏览器预览请先执行 npm start；桌面窗口请确认本地服务或打包资源已就绪。';
   els.shelfView.prepend(hint);
 });

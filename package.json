@@ -9,7 +9,9 @@
     "test:js": "node --test",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "scan": "cargo run --manifest-path src-tauri/Cargo.toml --bin scan --",
-    "build:vendor": "node scripts/build-vendor.mjs"
+    "build:vendor": "node scripts/build-vendor.mjs",
+    "build:desktop": "node scripts/build-desktop.mjs",
+    "dev:desktop": "npm run build:desktop && cargo run --manifest-path src-tauri/Cargo.toml --features desktop --bin jiandu"
   },
   "dependencies": {
     "chmlib-ts": "^0.3.0",
@@ -17,6 +19,8 @@
     "pdfjs-dist": "^6.5.438"
   },
   "devDependencies": {
+    "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/plugin-dialog": "^2.8.4",
     "esbuild": "^0.28.2"
   }
 }

@@ -1,7 +1,8 @@
 use jiandu_library::{
-    load_data, natural_cmp, resolve_within, stable_id, BookFormat, Library, LibraryData,
-    LibraryError, Progress, SUPPORTED_EXTENSIONS,
+    load_data, load_settings, natural_cmp, resolve_within, save_settings, stable_id, BookFormat,
+    Library, LibraryData, LibraryError, Progress, SUPPORTED_EXTENSIONS,
 };
+use serde_json::json;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -150,4 +151,39 @@ fn 索引与进度可往返且重复保存不损坏() {
 fn 索引文件不存在时返回空书库数据() {
     let temp = TempDir::new("empty");
     assert_eq!(load_data(&temp.path().join("missing.json")).unwrap(), LibraryData::default());
+}
+
+/** 对应 commands::scan_library 的 from_data 路径：重扫不能丢阅读记录。 */
+#[test]
+fn 重新扫描目录保留旧进度并纳入新增书籍() {
+    let temp = TempDir::new("rescan");
+    fs::write(temp.path().join("a.txt"), "A").unwrap();
+    let index = temp.path().join("library.json");
+
+    let mut library = Library::open(temp.path()).unwrap();
+    library.scan().unwrap();
+    let id = library.books()[0].id.clone();
+    library.set_progress(id.clone(), Progress::new(7.0, 1, 25.0));
+    library.save(&index).unwrap();
+
+    fs::write(temp.path().join("b.txt"), "B").unwrap();
+    let previous = load_data(&index).unwrap();
+    let mut rescanned = Library::from_data(LibraryData {
+        root: temp.path().to_string_lossy().into_owned(),
+        ..previous
+    }).unwrap();
+    assert_eq!(rescanned.scan().unwrap(), 2);
+    assert_eq!(rescanned.get_progress(&id).unwrap().offset, 7.0);
+}
+
+#[test]
+fn 阅读设置独立持久化且缺省为空对象() {
+    let temp = TempDir::new("settings");
+    let path = temp.path().join("settings.json");
+    assert_eq!(load_settings(&path).unwrap(), json!({}));
+    let value = json!({ "theme": "dark", "fontSize": 22 });
+    save_settings(&path, &value).unwrap();
+    assert_eq!(load_settings(&path).unwrap(), value);
+    fs::write(&path, "{损坏的 JSON").unwrap();
+    assert!(load_settings(&path).is_err());
 }

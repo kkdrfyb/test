@@ -228,15 +228,28 @@ pub fn load_data(path: &Path) -> Result<LibraryData, LibraryError> {
 }
 
 /** 先写临时文件再替换，避免写到一半留下损坏的 JSON。 */
-pub fn save_data(path: &Path, data: &LibraryData) -> Result<(), LibraryError> {
+fn atomic_write_text(path: &Path, text: &str) -> Result<(), LibraryError> {
     if let Some(parent) = path.parent() { fs::create_dir_all(parent)?; }
     let temporary = path.with_extension("json.tmp");
-    let json = serde_json::to_string_pretty(data)?;
-    fs::write(&temporary, json)?;
+    fs::write(&temporary, text)?;
     // Windows 的 rename 不能覆盖已存在目标，因此先移除旧文件。
     if path.exists() { fs::remove_file(path)?; }
     fs::rename(&temporary, path)?;
     Ok(())
+}
+
+pub fn save_data(path: &Path, data: &LibraryData) -> Result<(), LibraryError> {
+    atomic_write_text(path, &serde_json::to_string_pretty(data)?)
+}
+
+/** 阅读设置独立于书库索引，格式化升级时不会互相影响。 */
+pub fn load_settings(path: &Path) -> Result<serde_json::Value, LibraryError> {
+    if !path.exists() { return Ok(serde_json::Value::Object(Default::default())); }
+    Ok(serde_json::from_str(&fs::read_to_string(path)?)?)
+}
+
+pub fn save_settings(path: &Path, value: &serde_json::Value) -> Result<(), LibraryError> {
+    atomic_write_text(path, &serde_json::to_string_pretty(value)?)
 }
 
 pub struct Library {

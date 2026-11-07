@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>简读 · TXT 阅读器</title>
+  <title>简读 · 本地阅读器</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body data-theme="light">
   <div id="app">
     <header class="topbar">
-      <div class="brand">简读 <span>TXT 阅读器</span></div>
+      <div class="brand">简读 <span>本地阅读器</span></div>
       <div class="topbar-actions">
         <button id="importBtn" class="btn btn-primary" type="button">导入书籍</button>
         <input id="fileInput" type="file" accept=".txt,.epub,.pdf,.chm" multiple hidden>
@@ -18,16 +18,21 @@
 
     <main>
       <section id="shelfView" class="view">
+        <div id="desktopBar" class="desktop-bar" hidden>
+          <button id="scanBtn" class="btn btn-primary" type="button">选择书库目录</button>
+          <span id="libraryRootLabel" class="muted">尚未选择书库目录</span>
+        </div>
         <div id="dropZone" class="drop-zone">
           <div class="drop-title">把电子书拖到这里</div>
-          <div class="drop-sub">支持 TXT / EPUB / PDF / CHM，点击右上角「导入书籍」也可以；所有解析都在本地浏览器完成，文件不会上传</div>
+          <div class="drop-sub">支持 TXT / EPUB / PDF / CHM，点击右上角「导入书籍」也可以；所有解析都在本地完成，文件不会上传</div>
         </div>
         <div class="shelf-head">
           <h2>我的书架</h2>
+          <input id="searchInput" class="search-input" type="search" placeholder="按书名筛选…" aria-label="按书名筛选">
           <span id="bookCount" class="muted"></span>
         </div>
         <div id="bookList" class="book-list"></div>
-        <div id="emptyState" class="empty-state" hidden>书架空空的，导入一本 TXT / EPUB / PDF / CHM 试试吧。</div>
+        <div id="emptyState" class="empty-state" hidden>书架空空的，先添加一本书吧。</div>
       </section>
 
       <section id="readerView" class="view" hidden>
