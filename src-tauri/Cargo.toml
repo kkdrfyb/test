@@ -9,17 +9,21 @@ name = "jiandu_library"
 path = "src/lib.rs"
 
 [[bin]]
-name = "scan"
-path = "src/bin/scan.rs"
-
-[[bin]]
 name = "jiandu"
 path = "src/main.rs"
 required-features = ["desktop"]
 
+[[bin]]
+name = "scan"
+path = "src/bin/scan.rs"
+required-features = ["cli"]
+
 # 默认只编译纯书库库（cargo test 秒级）；桌面窗口需要显式 --features desktop。
+# scan 需要 cli feature，发布构建因此只产出 jiandu 一个可执行文件，
+# 避免 Tauri CLI 把命令行扫描工具误当成主程序打进 MSI。
 [features]
 default = []
+cli = []
 desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-build", "dep:trash"]
 # 独立窗口：启用后 generate_context! 会把 ../dist 内嵌为 tauri://localhost 资源，
 # 窗口不再依赖 devUrl 的本地开发服务器；打包成 exe 时必须带这个 feature。
@@ -28,13 +32,13 @@ custom-protocol = ["desktop", "tauri/custom-protocol"]
 console = []
 
 [build-dependencies]
-tauri-build = { version = "2.7.4", optional = true }
+tauri-build = { version = "2.7.4", optional = true , features = [] }
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 walkdir = "2"
-tauri = { version = "2.12.5", optional = true }
+tauri = { version = "2.12.5", optional = true , features = [] }
 tauri-plugin-dialog = { version = "2.8.4", optional = true }
 # 仅桌面窗口使用：把彻底删除的书籍移入系统回收站（可恢复，不做永久删除）。
 trash = { version = "5.3.0", optional = true }

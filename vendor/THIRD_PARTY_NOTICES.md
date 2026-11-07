@@ -10,6 +10,7 @@
 | @tauri-apps/api | 2.12.4 | Apache-2.0 OR MIT | 桌面窗口的 IPC 调用（`tauri.mjs`） | `licenses/tauri-MIT.txt`、`licenses/tauri-APACHE-2.0.txt` |
 | @tauri-apps/plugin-dialog | 2.8.4 | Apache-2.0 OR MIT | 桌面窗口选择书库目录 | `licenses/tauri-MIT.txt`、`licenses/tauri-APACHE-2.0.txt` |
 | esbuild | 0.28.2 | MIT | 仅开发期打包工具，不进入运行时产物 | — |
+| @tauri-apps/cli | 2.12.4 | Apache-2.0 OR MIT | 仅开发期生成 release exe 与 WiX MSI 安装包，不进入运行时产物 | — |
 
 ## Rust 桌面端依赖
 

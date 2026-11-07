@@ -15,11 +15,49 @@ test('Tauri 配置指向本地开发服务与静态副本，窗口与权限配�
   assert.equal(config.identifier, 'com.jiandu.reader');
   assert.equal(config.app.windows[0].label, 'main');
   assert.equal(config.app.security.csp, null, '书籍内容含内联样式，CSP 由 sanitizeHtml 负责');
-  assert.equal(config.bundle.active, false, '阶段 1 不产出安装包');
+  assert.equal(config.mainBinaryName, 'jiandu', '存在 scan 与 jiandu 两个 bin，打包必须指定主程序');
+  assert.deepEqual(config.build.features, ['custom-protocol'], '发布包必须内嵌 frontendDist，不能依赖 devUrl');
+  assert.equal(config.bundle.active, true);
 
   const capability = JSON.parse(await read('src-tauri/capabilities/default.json'));
   assert.deepEqual(capability.windows, ['main']);
   assert.ok(capability.permissions.includes('dialog:allow-open'));
+});
+
+test('MSI 安装包配置完整，分发时只需发送一个安装文件', async () => {
+  const [configText, pkgText, ignored] = await Promise.all([
+    read('src-tauri/tauri.conf.json'), read('package.json'), read('.gitignore'),
+  ]);
+  const config = JSON.parse(configText);
+  const pkg = JSON.parse(pkgText);
+  assert.equal(config.build.beforeBuildCommand, 'npm run build:desktop', '打包前必须先生成 dist');
+  assert.deepEqual(config.bundle.targets, ['msi']);
+  assert.deepEqual(config.bundle.icon, ['icons/icon.ico']);
+  assert.equal(config.bundle.publisher, 'fanyb');
+  assert.equal(config.bundle.windows.webviewInstallMode.type, 'embedBootstrapper',
+    '安装程序自带 WebView2 引导器，避免用户手动下载');
+  assert.equal(config.bundle.windows.wix.language, 'zh-CN');
+  assert.match(pkg.scripts['build:msi'], /npm run build:release && tauri bundle --bundles=msi/,
+    '必须显式编译 jiandu 主程序后再打包；tauri build 会把 scan 误当成主程序');
+  assert.match(pkg.scripts['build:release'], /cargo build --release.*--bin jiandu/);
+  assert.match(pkg.scripts['build:msi'], /--features=custom-protocol/);
+  assert.doesNotMatch(pkg.scripts['build:msi'], /tauri build\b/);
+  assert.ok(pkg.devDependencies['@tauri-apps/cli'], 'MSI 打包需要 Tauri CLI');
+  assert.match(ignored, /^src-tauri\/target\//m, '安装包与编译产物都不应提交');
+});
+
+test('发布构建只产出窗口主程序，命令行扫描器不会顶替 MSI 主文件', async () => {
+  const [cargo, pkgText, configText] = await Promise.all([
+    read('src-tauri/Cargo.toml'), read('package.json'), read('src-tauri/tauri.conf.json'),
+  ]);
+  assert.match(cargo, /\[\[bin\]\]\s*\nname = "jiandu"[\s\S]*?\[\[bin\]\]\s*\nname = "scan"/,
+    '主程序必须排在第一个 bin，Tauri CLI 按声明顺序挑选主程序');
+  assert.match(cargo, /name = "scan"\s*\npath = "src\/bin\/scan\.rs"\s*\nrequired-features = \["cli"\]/,
+    'scan 必须从发布构建中排除，否则 371KB 的命令行工具会被打进安装包');
+  assert.match(cargo, /^cli = \[\]$/m);
+  assert.match(JSON.parse(pkgText).scripts.scan, /--features cli --bin scan/,
+    '扫描工具仍要能通过 npm run scan 单独运行');
+  assert.equal(JSON.parse(configText).mainBinaryName, 'jiandu');
 });
 
 test('Cargo 把 Tauri 依赖隔离在可选 desktop feature 后面', async () => {
@@ -27,11 +65,12 @@ test('Cargo 把 Tauri 依赖隔离在可选 desktop feature 后面', async () =>
   assert.match(cargo, /\[\[bin\]\]\s*\nname = "jiandu"/);
   assert.match(cargo, /required-features = \["desktop"\]/);
   assert.match(cargo, /desktop = \["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-build", "dep:trash"\]/);
-  assert.match(cargo, /tauri-build = \{ version = "2\.7\.4", optional = true \}/);
+  assert.match(cargo, /tauri-build = \{ version = "2\.7\.4", optional = true/,
+    'Tauri CLI 会自行同步 features = []，只锁定版本与可选依赖');
   assert.match(await read('src-tauri/build.rs'), /#\[cfg\(feature = "desktop"\)\]/);
   assert.match(await read('src-tauri/build.rs'), /rerun-if-changed=\.\.\/dist/,
     '静态资源变化必须让 Tauri 重新内嵌 frontendDist');
-  assert.match(cargo, /tauri = \{ version = "2\.12\.5", optional = true \}/);
+  assert.match(cargo, /tauri = \{ version = "2\.12\.5", optional = true/);
   assert.match(cargo, /tauri-plugin-dialog = \{ version = "2\.8\.4", optional = true \}/);
   assert.match(cargo, /name = "scan"/, '阶段 0 的命令行扫描工具必须保留');
   assert.match(cargo, /custom-protocol = \["desktop", "tauri\/custom-protocol"\]/,
@@ -119,4 +158,5 @@ test('package.json 提供桌面构建与启动脚本', async () => {
   const notices = await read('vendor/THIRD_PARTY_NOTICES.md');
   assert.match(notices, /@tauri-apps\/api/);
   assert.match(notices, /@tauri-apps\/plugin-dialog/);
+  assert.match(notices, /@tauri-apps\/cli/, '新增的构建工具也需列明许可');
 });
