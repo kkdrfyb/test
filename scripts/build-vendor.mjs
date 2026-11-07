@@ -20,7 +20,7 @@ await build({
 });
 
 await copyFile(
-  join(root, 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.min.mjs'),
+  join(root, 'node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.worker.min.mjs'),
   join(vendor, 'pdf.worker.mjs'),
 );
 

@@ -1,5 +1,5 @@
 const DB_NAME = 'jiandu-reader';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 let dbPromise = null;
 
 /** 打开（并缓存）IndexedDB 连接，书籍与设置都存在浏览器本地。 */
@@ -15,6 +15,8 @@ export function openDb() {
         const db = request.result;
         if (!db.objectStoreNames.contains('books')) db.createObjectStore('books', { keyPath: 'id' });
         if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'key' });
+        // 原始文件字节单独存放，避免每次保存进度都重写整本书的二进制内容。
+        if (!db.objectStoreNames.contains('files')) db.createObjectStore('files', { keyPath: 'id' });
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -62,9 +64,24 @@ export async function putBook(book) {
 
 export async function deleteBook(id) {
   const db = await openDb();
-  const tx = db.transaction('books', 'readwrite');
+  const tx = db.transaction(['books', 'files'], 'readwrite');
   tx.objectStore('books').delete(id);
+  tx.objectStore('files').delete(id);
   await transactionDone(tx);
+}
+
+export async function putFile(id, data) {
+  const db = await openDb();
+  const tx = db.transaction('files', 'readwrite');
+  tx.objectStore('files').put({ id, data });
+  await transactionDone(tx);
+}
+
+export async function getFile(id) {
+  const db = await openDb();
+  const tx = db.transaction('files', 'readonly');
+  const record = await asPromise(tx.objectStore('files').get(id));
+  return record?.data ?? null;
 }
 
 /** 只更新阅读进度相关字段，避免整本书内容被反复写入。 */
