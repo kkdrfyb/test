@@ -60,8 +60,10 @@
 
 到 [Releases 页面](https://github.com/kkdrfyb/test/releases/latest) 下载其中一个即可：
 
-- `简读_0.2.0_x64_zh-CN.msi` — 中文安装界面，带开始菜单 / 桌面快捷方式、卸载入口，安装包内已内嵌 WebView2 引导器
+- `jiandu-0.2.0-x64-zh-CN.msi` — 中文安装界面，带开始菜单 / 桌面快捷方式、卸载入口，安装包内已内嵌 WebView2 引导器
 - `jiandu.exe` — 免安装单文件，前端资源已内嵌，双击即用
+
+> Release 附件统一用 ASCII 文件名，避免部分下载工具处理中文文件名出错。本地 `npm run build:msi` 生成的文件名是 `简读_0.2.0_x64_zh-CN.msi`，内容与附件完全相同。
 
 首次运行书库是空的：点「选择书库目录」挑一个放电子书的文件夹即可。老一点的 Win10 若未预装 WebView2 运行时，安装时会联网下载运行时本体（多数 Win10/Win11 已自带）。
 
