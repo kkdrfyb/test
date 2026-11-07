@@ -11,23 +11,23 @@
     <header class="topbar">
       <div class="brand">简读 <span>TXT 阅读器</span></div>
       <div class="topbar-actions">
-        <button id="importBtn" class="btn btn-primary" type="button">导入 TXT</button>
-        <input id="fileInput" type="file" accept=".txt,text/plain" multiple hidden>
+        <button id="importBtn" class="btn btn-primary" type="button">导入书籍</button>
+        <input id="fileInput" type="file" accept=".txt,.epub,.pdf,.chm" multiple hidden>
       </div>
     </header>
 
     <main>
       <section id="shelfView" class="view">
         <div id="dropZone" class="drop-zone">
-          <div class="drop-title">把 TXT 文件拖到这里</div>
-          <div class="drop-sub">或点击右上角「导入 TXT」，支持 UTF-8 / GBK 中文编码</div>
+          <div class="drop-title">把电子书拖到这里</div>
+          <div class="drop-sub">支持 TXT / EPUB / PDF / CHM，点击右上角「导入书籍」也可以；所有解析都在本地浏览器完成，文件不会上传</div>
         </div>
         <div class="shelf-head">
           <h2>我的书架</h2>
           <span id="bookCount" class="muted"></span>
         </div>
         <div id="bookList" class="book-list"></div>
-        <div id="emptyState" class="empty-state" hidden>书架空空的，先导入一本 TXT 试试吧。</div>
+        <div id="emptyState" class="empty-state" hidden>书架空空的，导入一本 TXT / EPUB / PDF / CHM 试试吧。</div>
       </section>
 
       <section id="readerView" class="view" hidden>
@@ -36,6 +36,19 @@
           <div class="reader-title" id="readerBookTitle"></div>
           <button id="tocBtn" class="btn" type="button">目录</button>
           <button id="settingsBtn" class="btn" type="button">设置</button>
+        </div>
+
+        <div id="pdfTools" class="pdf-tools" hidden>
+          <label>跳转第 <input id="pageInput" type="number" min="1" value="1"> / <span id="pageTotal">1</span> 页</label>
+          <label>缩放
+            <select id="zoomSelect">
+              <option value="0.8">80%</option>
+              <option value="1">100%</option>
+              <option value="1.2">120%</option>
+              <option value="1.5">150%</option>
+              <option value="2">200%</option>
+            </select>
+          </label>
         </div>
 
         <aside id="tocPanel" class="toc-panel" hidden>

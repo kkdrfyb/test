@@ -5,7 +5,7 @@
 | 组件 | 版本 | 许可 | 用途 | 完整许可 |
 |---|---|---|---|---|
 | JSZip | 3.10.2 | MIT / GPLv3 双许可（本项目按 MIT 使用） | 解压 EPUB (ZIP) | `licenses/JSZip.txt` |
-| pdf.js (pdfjs-dist) | 6.5.438 | Apache-2.0 | PDF 解析与页面渲染 | `licenses/pdf.js.txt` |
+| pdf.js (pdfjs-dist legacy build) | 6.5.438 | Apache-2.0 | PDF 解析与页面渲染（选用 legacy 构建以兼容不支持 `Promise.try` 的环境） | `licenses/pdf.js.txt` |
 | chmlib-ts | 0.3.0 | LGPL-2.1 | CHM (ITSF/LZX) 解压与目录解析 | `licenses/chmlib-ts.txt` |
 | esbuild | 0.28.2 | MIT | 仅开发期打包工具，不进入运行时产物 | — |
 

@@ -17,6 +17,17 @@ test('页面引用的静态资源都真实存在且均为本地文件', async ()
   assert.ok((await read('src/db.js')).length > 0);
 });
 
+test('页面支持四种格式并提供 PDF 分页工具', async () => {
+  const [html, css] = await Promise.all([read('index.html'), read('styles.css')]);
+  for (const ext of ['.txt', '.epub', '.pdf', '.chm']) assert.match(html, new RegExp(ext.replace('.', '\\.')));
+  for (const id of ['pdfTools', 'pageInput', 'pageTotal', 'zoomSelect']) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  assert.match(css, /\.format-badge/);
+  assert.match(css, /\.pdf-page canvas/);
+  assert.match(css, /\.rich-content article img/);
+});
+
 test('app.js 中用到的所有元素 id 都在 index.html 中定义', async () => {
   const [html, app] = await Promise.all([read('index.html'), read('src/app.js')]);
   const htmlIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));

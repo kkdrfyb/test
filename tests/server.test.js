@@ -33,6 +33,14 @@ test('CSS 与 JS 模块可访问且 MIME 正确', async () => {
   assert.match(js.headers.get('content-type'), /javascript/);
 });
 
+test('vendor 的 .mjs 模块与 pdf worker 可访问且 MIME 正确', async () => {
+  for (const path of ['/vendor/books.mjs', '/vendor/pdf.worker.mjs', '/src/formats.js']) {
+    const response = await fetch(`${base}${path}`);
+    assert.equal(response.status, 200, `${path} 应可访问`);
+    assert.match(response.headers.get('content-type'), /javascript/, `${path} MIME 应为 JS`);
+  }
+});
+
 test('不存在的文件返回 404', async () => {
   const response = await fetch(`${base}/does-not-exist.txt`);
   assert.equal(response.status, 404);

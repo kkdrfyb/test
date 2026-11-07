@@ -1,23 +1,21 @@
-import {
-  decodeTxt,
-  detectChapters,
-  computePercent,
-  getChapterAt,
-  getChapterText,
-  splitParagraphs,
-} from './text.js';
+import { computePercent, getChapterAt, getChapterText } from './text.js';
+import { inspectFile, createDocument, ACCEPT_ATTR } from './formats.js';
 import {
   getAllBooks,
   getBook,
   putBook,
+  putFile,
+  getFile,
   deleteBook,
   saveProgress,
   getSettings,
   saveSettings,
 } from './db.js';
 
-const DEFAULTS = { fontSize: 18, lineHeight: 1.8, pageWidth: 760, theme: 'light' };
+const DEFAULTS = { fontSize: 18, lineHeight: 1.8, pageWidth: 760, theme: 'light', pdfScale: 1.2 };
+const MAX_TOC_ITEMS = 500;
 const $ = (id) => document.getElementById(id);
+const clamp = (value, min, max) => Math.min(Math.max(value, min), Math.max(min, max));
 
 const els = {
   shelfView: $('shelfView'), readerView: $('readerView'),
@@ -31,6 +29,7 @@ const els = {
   lineHeightRange: $('lineHeightRange'), pageWidthRange: $('pageWidthRange'),
   fontSizeValue: $('fontSizeValue'), lineHeightValue: $('lineHeightValue'),
   pageWidthValue: $('pageWidthValue'), resetSettingsBtn: $('resetSettingsBtn'),
+  pdfTools: $('pdfTools'), pageInput: $('pageInput'), pageTotal: $('pageTotal'), zoomSelect: $('zoomSelect'),
   content: $('content'), chapterLabel: $('chapterLabel'),
   percentLabel: $('percentLabel'), progressFill: $('progressFill'),
   prevChapterBtn: $('prevChapterBtn'), nextChapterBtn: $('nextChapterBtn'),
@@ -40,9 +39,12 @@ const els = {
 const state = {
   books: [],
   current: null,
+  doc: null,
   chapterIndex: 0,
+  renderToken: 0,
   settings: { ...DEFAULTS },
   saveTimer: null,
+  settingsTimer: null,
   toastTimer: null,
 };
 
@@ -53,7 +55,12 @@ function toast(message) {
   els.toast.textContent = message;
   els.toast.hidden = false;
   clearTimeout(state.toastTimer);
-  state.toastTimer = setTimeout(() => { els.toast.hidden = true; }, 2600);
+  state.toastTimer = setTimeout(() => { els.toast.hidden = true; }, 2800);
+}
+
+function showError(error) {
+  console.error(error);
+  toast(`出错：${error?.message || error}`);
 }
 
 function formatSize(bytes) {
@@ -80,6 +87,7 @@ function applySettings() {
   els.fontSizeRange.value = String(s.fontSize);
   els.lineHeightRange.value = String(s.lineHeight);
   els.pageWidthRange.value = String(s.pageWidth);
+  els.zoomSelect.value = String(s.pdfScale);
   els.fontSizeValue.textContent = `${s.fontSize}px`;
   els.lineHeightValue.textContent = String(s.lineHeight);
   els.pageWidthValue.textContent = `${s.pageWidth}px`;
@@ -88,11 +96,6 @@ function applySettings() {
 function scheduleSettingsSave() {
   clearTimeout(state.settingsTimer);
   state.settingsTimer = setTimeout(() => { saveSettings(state.settings).catch(showError); }, 200);
-}
-
-function showError(error) {
-  console.error(error);
-  toast(`出错：${error?.message || error}`);
 }
 
 /* ------------------------------ 书架 ------------------------------ */
@@ -107,13 +110,20 @@ async function refreshShelf() {
     card.className = 'book-card';
     card.addEventListener('click', () => openBook(book.id).catch(showError));
 
+    const head = document.createElement('div');
+    head.className = 'book-head';
     const name = document.createElement('div');
     name.className = 'book-name';
     name.textContent = book.title;
+    const badge = document.createElement('span');
+    badge.className = 'format-badge';
+    badge.textContent = (book.format || 'txt').toUpperCase();
+    head.append(name, badge);
 
     const meta = document.createElement('div');
     meta.className = 'book-meta';
-    meta.textContent = `${formatSize(book.size)} · ${book.chapters?.length || 0} 章 · ${formatDate(book.lastReadAt)}`;
+    const unit = book.format === 'pdf' ? `${book.total || 0} 页` : `${book.chapters?.length || 0} 章`;
+    meta.textContent = `${formatSize(book.size)} · ${unit} · ${formatDate(book.lastReadAt)}`;
 
     const bar = document.createElement('div');
     bar.className = 'book-progress';
@@ -136,63 +146,46 @@ async function refreshShelf() {
       deleteBook(book.id).then(refreshShelf).catch(showError);
     });
     foot.append(percent, del);
-    card.append(name, meta, bar, foot);
+    card.append(head, meta, bar, foot);
     els.bookList.append(card);
   }
 }
 
 async function handleFiles(files) {
-  const txts = [...files].filter((f) => /\.txt$/i.test(f.name) || f.type === 'text/plain');
-  if (txts.length === 0) {
-    toast('请选择 .txt 文本文件');
-    return;
-  }
   let imported = 0;
-  for (const file of txts) {
+  for (const file of [...files]) {
     try {
-      const content = decodeTxt(await file.arrayBuffer());
-      if (!content.trim()) {
-        toast(`《${file.name}》是空文件，已跳过`);
-        continue;
-      }
-      await putBook({
-        id: makeId(),
-        title: file.name.replace(/\.txt$/i, ''),
-        size: file.size,
-        addedAt: Date.now(),
-        lastReadAt: Date.now(),
-        content,
-        chapters: detectChapters(content),
-        offset: 0,
-        chapterIndex: 0,
-        percent: 0,
-      });
+      const { book, rawBytes } = await inspectFile(file);
+      book.id = makeId();
+      if (rawBytes) await putFile(book.id, rawBytes);
+      await putBook(book);
       imported += 1;
     } catch (error) {
       showError(error);
     }
   }
   await refreshShelf();
-  if (imported) toast(`已导入 ${imported} 本 TXT`);
+  if (imported) toast(`已导入 ${imported} 本书`);
 }
 
 /* ------------------------------ 阅读器 ------------------------------ */
 
-function currentChapter() {
-  return getChapterText(state.current.content, state.current.chapters, state.chapterIndex);
-}
-
+/** 三种进度单位：TXT 按字符、EPUB/CHM 按「章节 + 章内比例」、PDF 按页码。 */
 function currentOffset() {
-  const chapter = currentChapter();
+  const doc = state.doc;
+  if (!doc) return 0;
+  if (doc.unit === 'page') return state.chapterIndex + 1;
   const max = els.content.scrollHeight - els.content.clientHeight;
-  const ratio = max > 0 ? Math.min(1, Math.max(0, els.content.scrollTop / max)) : 0;
+  const ratio = max > 0 ? clamp(els.content.scrollTop / max, 0, 1) : 0;
+  if (doc.unit === 'chapter') return state.chapterIndex + ratio;
+  const chapter = getChapterText(state.current.content, state.current.chapters || [], state.chapterIndex);
   return chapter.start + Math.round(ratio * chapter.text.length);
 }
 
 function updateProgress() {
-  if (!state.current) return;
+  if (!state.current || !state.doc) return;
   const offset = currentOffset();
-  const percent = computePercent(state.current.content.length, offset);
+  const percent = computePercent(state.doc.total, offset);
   state.current.offset = offset;
   state.current.percent = percent;
   els.percentLabel.textContent = `${percent}%`;
@@ -209,7 +202,8 @@ function scheduleProgressSave(offset, percent) {
 }
 
 function buildToc() {
-  const chapters = state.current.chapters || [];
+  const doc = state.doc;
+  const chapters = doc.chapters || [];
   els.tocList.replaceChildren();
   if (!chapters.length) {
     const hint = document.createElement('div');
@@ -217,7 +211,7 @@ function buildToc() {
     hint.textContent = '未识别到章节标题，按全文连续阅读。';
     els.tocList.append(hint);
   }
-  chapters.forEach((chapter, index) => {
+  chapters.slice(0, MAX_TOC_ITEMS).forEach((chapter, index) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `toc-item${index === state.chapterIndex ? ' active' : ''}`;
@@ -228,49 +222,55 @@ function buildToc() {
     });
     els.tocList.append(button);
   });
+  if (chapters.length > MAX_TOC_ITEMS) {
+    const more = document.createElement('div');
+    more.className = 'muted';
+    more.textContent = `仅显示前 ${MAX_TOC_ITEMS} 项，其余可通过上/下${doc.unit === 'page' ? '页' : '章'}按钮浏览。`;
+    els.tocList.append(more);
+  }
+  const last = Math.max(0, chapters.length - 1);
   els.prevChapterBtn.disabled = chapters.length === 0 || state.chapterIndex === 0;
-  els.nextChapterBtn.disabled = chapters.length === 0 || state.chapterIndex >= chapters.length - 1;
+  els.nextChapterBtn.disabled = chapters.length === 0 || state.chapterIndex >= last;
 }
 
-function renderChapter(restoreRatio = 0) {
-  const chapter = currentChapter();
-  const inner = document.createElement('div');
-  inner.className = 'content-inner';
-  const heading = document.createElement('h2');
-  heading.textContent = chapter.title;
-  inner.append(heading);
-
-  const paragraphs = splitParagraphs(chapter.text);
-  if (paragraphs[0]?.trim() === chapter.title) paragraphs.shift();
-  for (const line of paragraphs) {
-    const p = document.createElement('p');
-    p.textContent = line;
-    inner.append(p);
+async function renderChapter(restoreRatio = 0) {
+  const doc = state.doc;
+  if (!doc) return;
+  const token = ++state.renderToken;
+  try {
+    await doc.render(els.content, state.chapterIndex, { scale: state.settings.pdfScale });
+  } catch (error) {
+    if (error?.name === 'RenderingCancelledException') return;
+    showError(error);
+    return;
   }
-  els.content.replaceChildren(inner);
-  els.content.scrollTop = 0;
+  if (token !== state.renderToken) return;
 
-  const count = state.current.chapters?.length || 0;
-  els.chapterLabel.textContent = count
-    ? `第 ${state.chapterIndex + 1}/${count} 章 · ${chapter.title}`
-    : '全文';
+  els.content.scrollTop = 0;
+  const count = doc.chapters.length;
+  const title = doc.chapters[state.chapterIndex]?.title || '';
+  els.chapterLabel.textContent = doc.unit === 'page'
+    ? `第 ${state.chapterIndex + 1}/${doc.total} 页`
+    : count ? `第 ${state.chapterIndex + 1}/${count} 章 · ${title}` : '全文';
+  els.pageInput.value = String(state.chapterIndex + 1);
   buildToc();
   updateProgress();
 
-  if (restoreRatio > 0) {
+  if (restoreRatio > 0 && doc.unit !== 'page') {
     requestAnimationFrame(() => {
       const max = els.content.scrollHeight - els.content.clientHeight;
-      els.content.scrollTop = Math.min(1, Math.max(0, restoreRatio)) * max;
+      els.content.scrollTop = clamp(restoreRatio, 0, 1) * max;
       updateProgress();
     });
   }
 }
 
 function goChapter(index) {
-  const chapters = state.current.chapters || [];
-  if (!chapters.length) return;
-  state.chapterIndex = Math.min(Math.max(0, index), chapters.length - 1);
-  renderChapter(0);
+  const doc = state.doc;
+  if (!doc) return;
+  const last = Math.max(0, doc.chapters.length - 1);
+  state.chapterIndex = clamp(index, 0, last);
+  renderChapter(0).catch(showError);
 }
 
 async function openBook(id) {
@@ -279,19 +279,44 @@ async function openBook(id) {
     toast('这本书已不存在');
     return refreshShelf();
   }
+  let rawBytes = null;
+  if (book.format !== 'txt') {
+    rawBytes = await getFile(id);
+    if (!rawBytes) {
+      toast('原始文件数据缺失，请重新导入这本书');
+      return;
+    }
+  }
+  const doc = await createDocument(book, rawBytes);
+  if (state.doc?.dispose) await state.doc.dispose();
   state.current = book;
-  const chapters = book.chapters || [];
+  state.doc = doc;
+
   const saved = Number.isFinite(book.offset) ? book.offset : 0;
-  state.chapterIndex = Math.min(Math.max(0, getChapterAt(chapters, saved)), Math.max(0, chapters.length - 1));
-  const chapter = getChapterText(book.content, chapters, state.chapterIndex);
-  const ratio = (saved - chapter.start) / Math.max(1, chapter.text.length);
+  let ratio = 0;
+  if (doc.unit === 'char') {
+    const chapters = book.chapters || [];
+    state.chapterIndex = clamp(getChapterAt(chapters, saved), 0, Math.max(0, chapters.length - 1));
+    const chapter = getChapterText(book.content, chapters, state.chapterIndex);
+    ratio = (saved - chapter.start) / Math.max(1, chapter.text.length);
+  } else if (doc.unit === 'chapter') {
+    state.chapterIndex = clamp(Math.floor(saved), 0, Math.max(0, doc.chapters.length - 1));
+    ratio = saved - state.chapterIndex;
+  } else {
+    state.chapterIndex = clamp(Math.round(saved) - 1, 0, Math.max(0, doc.total - 1));
+  }
 
   els.shelfView.hidden = true;
   els.readerView.hidden = false;
   els.readerBookTitle.textContent = book.title;
   els.tocPanel.hidden = true;
   els.settingsPanel.hidden = true;
-  renderChapter(ratio);
+  els.pdfTools.hidden = doc.unit !== 'page';
+  els.pageTotal.textContent = String(doc.total);
+  els.pageInput.max = String(doc.total);
+  els.prevChapterBtn.textContent = doc.unit === 'page' ? '上一页' : '上一章';
+  els.nextChapterBtn.textContent = doc.unit === 'page' ? '下一页' : '下一章';
+  await renderChapter(ratio);
   els.content.focus({ preventScroll: true });
 }
 
@@ -302,7 +327,10 @@ function backToShelf() {
       .catch(showError)
       .finally(() => refreshShelf().catch(showError));
   }
+  state.doc?.dispose?.();
+  state.doc = null;
   state.current = null;
+  state.renderToken += 1;
   els.readerView.hidden = true;
   els.shelfView.hidden = false;
   els.tocPanel.hidden = true;
@@ -348,6 +376,12 @@ function bindEvents() {
   els.prevChapterBtn.addEventListener('click', () => goChapter(state.chapterIndex - 1));
   els.nextChapterBtn.addEventListener('click', () => goChapter(state.chapterIndex + 1));
   els.content.addEventListener('scroll', updateProgress, { passive: true });
+  els.pageInput.addEventListener('change', (event) => goChapter(Number(event.target.value) - 1));
+  els.zoomSelect.addEventListener('change', (event) => {
+    state.settings.pdfScale = Number(event.target.value);
+    scheduleSettingsSave();
+    if (state.doc?.unit === 'page') renderChapter(0).catch(showError);
+  });
 
   els.themeSelect.addEventListener('change', (e) => {
     state.settings.theme = e.target.value;
@@ -391,6 +425,7 @@ function bindEvents() {
 }
 
 async function init() {
+  els.fileInput.accept = ACCEPT_ATTR;
   state.settings = await getSettings(DEFAULTS);
   applySettings();
   bindEvents();
