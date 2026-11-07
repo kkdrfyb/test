@@ -1,8 +1,0 @@
-# WorkBuddy 工作区数据（不纳入版本管理）
-.workbuddy/
-
-# 系统/临时文件
-Thumbs.db
-Desktop.ini
-~$*.docx
-*.tmp
