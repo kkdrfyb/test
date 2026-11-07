@@ -1,0 +1,12 @@
+# WorkBuddy 工作区数据
+.workbuddy/
+
+# 依赖与构建产物
+node_modules/
+dist/
+
+# 系统与临时文件
+Thumbs.db
+Desktop.ini
+~$*.docx
+*.tmp

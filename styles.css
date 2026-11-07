@@ -1,0 +1,170 @@
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --text: #23262b;
+  --muted: #6b7280;
+  --border: #e2e5ea;
+  --accent: #2563eb;
+  --accent-soft: #e8f0fe;
+  --danger: #c0392b;
+  --radius: 10px;
+}
+
+body[data-theme="sepia"] {
+  --bg: #f4ecd8;
+  --surface: #fbf4e4;
+  --surface-2: #efe4cb;
+  --text: #4a3b2a;
+  --muted: #8a765c;
+  --border: #ddcdae;
+  --accent: #92631c;
+  --accent-soft: #f0e0be;
+}
+
+body[data-theme="dark"] {
+  --bg: #16181c;
+  --surface: #202329;
+  --surface-2: #2a2e35;
+  --text: #e4e6ea;
+  --muted: #9aa1ad;
+  --border: #343941;
+  --accent: #7aa7ff;
+  --accent-soft: #2b3a55;
+  --danger: #f07a6f;
+}
+
+* { box-sizing: border-box; }
+
+/* 视图容器用了 display: flex，必须显式让 hidden 属性生效，否则切换视图会失效。 */
+[hidden] { display: none !important; }
+
+html, body, #app { height: 100%; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+}
+
+#app { display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 56px; flex: 0 0 56px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+
+.brand { font-size: 17px; font-weight: 600; letter-spacing: .5px; }
+.brand span { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+
+.btn {
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  padding: 7px 13px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  font-family: inherit; white-space: nowrap;
+}
+.btn:hover { background: var(--surface-2); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-primary:hover { filter: brightness(1.08); background: var(--accent); }
+.btn-wide { width: 100%; margin-top: 8px; }
+
+main { flex: 1; min-height: 0; }
+.view { height: 100%; }
+
+#shelfView { overflow-y: auto; padding: 24px; max-width: 1080px; margin: 0 auto; }
+
+.drop-zone {
+  border: 1.5px dashed var(--border); border-radius: var(--radius);
+  background: var(--surface); padding: 34px 20px; text-align: center;
+  transition: border-color .15s, background .15s;
+}
+.drop-zone.dragover { border-color: var(--accent); background: var(--accent-soft); }
+.drop-title { font-size: 16px; margin-bottom: 6px; }
+.drop-sub { color: var(--muted); font-size: 13px; }
+
+.shelf-head { display: flex; align-items: baseline; gap: 10px; margin: 26px 0 12px; }
+.shelf-head h2 { font-size: 15px; margin: 0; font-weight: 600; }
+.muted { color: var(--muted); font-size: 12px; }
+
+.book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.book-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; cursor: pointer; display: flex; flex-direction: column; gap: 10px;
+}
+.book-card:hover { border-color: var(--accent); }
+.book-name { font-size: 15px; font-weight: 600; word-break: break-all; }
+.book-meta { color: var(--muted); font-size: 12px; }
+.book-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.book-progress { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; margin-top: 2px; }
+.book-progress > div { height: 100%; background: var(--accent); }
+.delete-btn { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 12px; padding: 2px 4px; }
+.empty-state { text-align: center; color: var(--muted); padding: 40px 0; }
+
+#readerView { display: flex; flex-direction: column; position: relative; }
+.reader-bar {
+  display: flex; align-items: center; gap: 10px; padding: 10px 18px;
+  background: var(--surface); border-bottom: 1px solid var(--border); flex: 0 0 auto;
+}
+.reader-title { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.toc-panel, .settings-panel {
+  position: absolute; top: 56px; right: 0; width: 300px; max-width: 86vw; bottom: 60px;
+  background: var(--surface); border-left: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  z-index: 5; padding: 14px; overflow-y: auto;
+}
+.panel-head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; margin-bottom: 12px; }
+.icon-btn { border: none; background: none; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; }
+.toc-list { display: flex; flex-direction: column; gap: 2px; }
+.toc-item {
+  text-align: left; border: none; background: none; color: var(--text); padding: 9px 10px;
+  border-radius: 7px; cursor: pointer; font-size: 13px; font-family: inherit;
+}
+.toc-item:hover { background: var(--surface-2); }
+.toc-item.active { background: var(--accent-soft); color: var(--accent); }
+
+.field { display: block; font-size: 13px; margin: 14px 0; }
+.field select, .field input[type="range"] { display: block; width: 100%; margin-top: 8px; }
+.field select {
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  border-radius: 7px; padding: 7px 9px; font-family: inherit;
+}
+.field-value { float: right; color: var(--muted); }
+
+.content {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 30px 24px 60px;
+  scroll-behavior: auto; outline: none;
+}
+.content-inner {
+  max-width: var(--page-width, 760px); margin: 0 auto;
+  font-size: var(--font-size, 18px); line-height: var(--line-height, 1.8);
+  font-family: "Microsoft YaHei", "PingFang SC", Georgia, serif;
+}
+.content-inner h2 { font-size: 1.35em; margin: 0 0 1.2em; font-weight: 600; }
+.content-inner p { margin: 0 0 1em; text-indent: 2em; word-break: break-word; }
+.content-inner p.chapter-line { text-indent: 0; }
+
+.reader-footer {
+  display: flex; align-items: center; gap: 16px; padding: 10px 18px;
+  background: var(--surface); border-top: 1px solid var(--border); flex: 0 0 auto;
+}
+.progress-wrap { flex: 1; min-width: 0; }
+.progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.progress-meta span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
+.progress-track { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; width: 0; background: var(--accent); transition: width .1s linear; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+  background: var(--text); color: var(--surface); padding: 9px 16px;
+  border-radius: 8px; font-size: 13px; z-index: 20;
+}
+
+@media (max-width: 640px) {
+  .topbar { padding: 0 14px; }
+  .brand span { display: none; }
+  #shelfView { padding: 14px; }
+  .reader-bar, .reader-footer { padding: 8px 12px; gap: 8px; }
+  .content { padding: 20px 16px 40px; }
+}

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>简读 · TXT 阅读器</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-theme="light">
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">简读 <span>TXT 阅读器</span></div>
+      <div class="topbar-actions">
+        <button id="importBtn" class="btn btn-primary" type="button">导入 TXT</button>
+        <input id="fileInput" type="file" accept=".txt,text/plain" multiple hidden>
+      </div>
+    </header>
+
+    <main>
+      <section id="shelfView" class="view">
+        <div id="dropZone" class="drop-zone">
+          <div class="drop-title">把 TXT 文件拖到这里</div>
+          <div class="drop-sub">或点击右上角「导入 TXT」，支持 UTF-8 / GBK 中文编码</div>
+        </div>
+        <div class="shelf-head">
+          <h2>我的书架</h2>
+          <span id="bookCount" class="muted"></span>
+        </div>
+        <div id="bookList" class="book-list"></div>
+        <div id="emptyState" class="empty-state" hidden>书架空空的，先导入一本 TXT 试试吧。</div>
+      </section>
+
+      <section id="readerView" class="view" hidden>
+        <div class="reader-bar">
+          <button id="backBtn" class="btn" type="button">← 书架</button>
+          <div class="reader-title" id="readerBookTitle"></div>
+          <button id="tocBtn" class="btn" type="button">目录</button>
+          <button id="settingsBtn" class="btn" type="button">设置</button>
+        </div>
+
+        <aside id="tocPanel" class="toc-panel" hidden>
+          <div class="panel-head">章节目录 <button id="tocCloseBtn" class="icon-btn" type="button" aria-label="关闭目录">×</button></div>
+          <div id="tocList" class="toc-list"></div>
+        </aside>
+
+        <aside id="settingsPanel" class="settings-panel" hidden>
+          <div class="panel-head">阅读设置 <button id="settingsCloseBtn" class="icon-btn" type="button" aria-label="关闭设置">×</button></div>
+          <label class="field">主题
+            <select id="themeSelect">
+              <option value="light">明亮</option>
+              <option value="sepia">护眼</option>
+              <option value="dark">夜间</option>
+            </select>
+          </label>
+          <label class="field">字号 <span id="fontSizeValue" class="field-value"></span>
+            <input id="fontSizeRange" type="range" min="14" max="30" step="1">
+          </label>
+          <label class="field">行距 <span id="lineHeightValue" class="field-value"></span>
+            <input id="lineHeightRange" type="range" min="1.4" max="2.4" step="0.1">
+          </label>
+          <label class="field">页宽 <span id="pageWidthValue" class="field-value"></span>
+            <input id="pageWidthRange" type="range" min="560" max="1100" step="20">
+          </label>
+          <button id="resetSettingsBtn" class="btn btn-wide" type="button">恢复默认</button>
+        </aside>
+
+        <div id="content" class="content" tabindex="0"></div>
+
+        <footer class="reader-footer">
+          <button id="prevChapterBtn" class="btn" type="button">上一章</button>
+          <div class="progress-wrap">
+            <div class="progress-meta"><span id="chapterLabel"></span><span id="percentLabel">0%</span></div>
+            <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+          </div>
+          <button id="nextChapterBtn" class="btn" type="button">下一章</button>
+        </footer>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" hidden></div>
+  </div>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
