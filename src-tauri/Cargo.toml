@@ -21,6 +21,9 @@ required-features = ["desktop"]
 [features]
 default = []
 desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-build"]
+# 独立窗口：启用后 generate_context! 会把 ../dist 内嵌为 tauri://localhost 资源，
+# 窗口不再依赖 devUrl 的本地开发服务器；打包成 exe 时必须带这个 feature。
+custom-protocol = ["desktop", "tauri/custom-protocol"]
 
 [build-dependencies]
 tauri-build = { version = "2.7.4", optional = true }

@@ -32,6 +32,8 @@ test('Cargo 把 Tauri 依赖隔离在可选 desktop feature 后面', async () =>
   assert.match(cargo, /tauri = \{ version = "2\.12\.5", optional = true \}/);
   assert.match(cargo, /tauri-plugin-dialog = \{ version = "2\.8\.4", optional = true \}/);
   assert.match(cargo, /name = "scan"/, '阶段 0 的命令行扫描工具必须保留');
+  assert.match(cargo, /custom-protocol = \["desktop", "tauri\/custom-protocol"\]/,
+    '独立窗口必须能内嵌 frontendDist，而不是依赖 devUrl');
 });
 
 test('main.rs 注册全部书库命令并仅在桌面 feature 下编译', async () => {
@@ -95,6 +97,7 @@ test('package.json 提供桌面构建与启动脚本', async () => {
   const pkg = JSON.parse(await read('package.json'));
   assert.match(pkg.scripts['build:desktop'], /build-desktop\.mjs/);
   assert.match(pkg.scripts['dev:desktop'], /--features desktop --bin jiandu/);
+  assert.match(pkg.scripts['build:exe'], /--features custom-protocol --bin jiandu/);
   assert.equal(pkg.scripts['test:rust'], 'cargo test --manifest-path src-tauri/Cargo.toml', '默认测试不应编译 tauri');
   assert.ok(pkg.devDependencies['@tauri-apps/api']);
   assert.ok(pkg.devDependencies['@tauri-apps/plugin-dialog']);
