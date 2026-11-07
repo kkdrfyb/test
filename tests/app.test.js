@@ -47,9 +47,17 @@ test('样式表覆盖三种主题与四项阅读设置变量', async () => {
   assert.match(css, /\[hidden\]\s*\{\s*display:\s*none\s*!important/);
 });
 
-test('package.json 提供 start 与 test 脚本', async () => {
+test('package.json 提供 start、JS/Rust 测试与书库扫描脚本', async () => {
   const pkg = JSON.parse(await read('package.json'));
   assert.equal(pkg.type, 'module');
   assert.match(pkg.scripts.start, /node server\.js/);
-  assert.match(pkg.scripts.test, /node --test/);
+  assert.equal(pkg.scripts['test:js'], 'node --test');
+  assert.match(pkg.scripts['test:rust'], /cargo test --manifest-path src-tauri\/Cargo\.toml/);
+  assert.match(pkg.scripts.test, /test:js/);
+  assert.match(pkg.scripts.test, /test:rust/);
+  assert.match(pkg.scripts.scan, /--bin scan/);
+});
+
+test('.gitignore 排除 Rust 构建产物，避免误提交', async () => {
+  assert.match(await read('.gitignore'), /src-tauri\/target\//);
 });

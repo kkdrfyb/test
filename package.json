@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test",
+    "test": "npm run test:js && npm run test:rust",
+    "test:js": "node --test",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "scan": "cargo run --manifest-path src-tauri/Cargo.toml --bin scan --",
     "build:vendor": "node scripts/build-vendor.mjs"
   },
   "dependencies": {

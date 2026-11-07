@@ -4,6 +4,7 @@
 # 依赖与构建产物
 node_modules/
 dist/
+src-tauri/target/
 
 # 系统与临时文件
 Thumbs.db
