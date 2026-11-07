@@ -34,6 +34,7 @@ test('Cargo 把 Tauri 依赖隔离在可选 desktop feature 后面', async () =>
   assert.match(cargo, /name = "scan"/, '阶段 0 的命令行扫描工具必须保留');
   assert.match(cargo, /custom-protocol = \["desktop", "tauri\/custom-protocol"\]/,
     '独立窗口必须能内嵌 frontendDist，而不是依赖 devUrl');
+  assert.match(cargo, /^console = \[\]$/m, '保留调试时显示控制台的开关');
 });
 
 test('main.rs 注册全部书库命令并仅在桌面 feature 下编译', async () => {
@@ -47,6 +48,10 @@ test('main.rs 注册全部书库命令并仅在桌面 feature 下编译', async 
   assert.match(lib, /#\[cfg\(feature = "desktop"\)\]\s*\npub mod commands;/);
   assert.match(commands, /Response::new\(bytes\)/, '二进制必须走 Raw IPC 而非 JSON 数组');
   assert.match(commands, /Library::from_data/, '重扫必须沿用旧进度');
+  assert.doesNotMatch(main, /cfg_attr\(not\(debug_assertions\)/,
+    'debug 构建也必须隐藏控制台，否则双击 exe 会弹出空白命令行窗口');
+  assert.match(main, /all\(target_os = "windows", not\(feature = "console"\)\)/);
+  assert.match(main, /windows_subsystem = "windows"/);
 });
 
 test('Windows 资源所需的 icon.ico 是有效 ICO 文件', async () => {
@@ -98,6 +103,7 @@ test('package.json 提供桌面构建与启动脚本', async () => {
   assert.match(pkg.scripts['build:desktop'], /build-desktop\.mjs/);
   assert.match(pkg.scripts['dev:desktop'], /--features desktop --bin jiandu/);
   assert.match(pkg.scripts['build:exe'], /--features custom-protocol --bin jiandu/);
+  assert.match(pkg.scripts['dev:desktop:console'], /--features desktop,console --bin jiandu/);
   assert.equal(pkg.scripts['test:rust'], 'cargo test --manifest-path src-tauri/Cargo.toml', '默认测试不应编译 tauri');
   assert.ok(pkg.devDependencies['@tauri-apps/api']);
   assert.ok(pkg.devDependencies['@tauri-apps/plugin-dialog']);

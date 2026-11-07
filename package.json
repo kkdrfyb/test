@@ -12,7 +12,8 @@
     "build:vendor": "node scripts/build-vendor.mjs",
     "build:desktop": "node scripts/build-desktop.mjs",
     "dev:desktop": "npm run build:desktop && cargo run --manifest-path src-tauri/Cargo.toml --features desktop --bin jiandu",
-    "build:exe": "npm run build:desktop && cargo build --manifest-path src-tauri/Cargo.toml --features custom-protocol --bin jiandu"
+    "build:exe": "npm run build:desktop && cargo build --manifest-path src-tauri/Cargo.toml --features custom-protocol --bin jiandu",
+    "dev:desktop:console": "npm run build:desktop && cargo run --manifest-path src-tauri/Cargo.toml --features desktop,console --bin jiandu"
   },
   "dependencies": {
     "chmlib-ts": "^0.3.0",

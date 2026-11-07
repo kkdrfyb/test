@@ -1,4 +1,9 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Windows 默认使用 GUI 子系统，debug 构建双击运行也不会弹出空的命令行窗口。
+// 需要看控制台日志时用 `--features console` 构建；仅在 Windows 目标上生效。
+#![cfg_attr(
+    all(target_os = "windows", not(feature = "console")),
+    windows_subsystem = "windows"
+)]
 
 //! 桌面窗口入口：只在 `--features desktop` 下编译。
 //! 开发期窗口加载 `devUrl`（现有 server.js），打包期加载 `frontendDist` 的静态副本。
