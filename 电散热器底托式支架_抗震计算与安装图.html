@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AP1000 主控室电散热器 底托式支架方案 — 抗震计算与安装图</title>
+<style>
+  :root{
+    --ink:#1b2430; --ink2:#3d4b5a; --muted:#6c7a89; --line:#ccd5de;
+    --accent:#14507f; --accent2:#b3541e; --bg:#ffffff; --soft:#f4f7fa;
+    --ok:#1d6f42; --bad:#a3231f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:0 0 60px; background:#e9edf2; color:var(--ink);
+    font-family:"Microsoft YaHei","PingFang SC","Source Han Sans SC","Hiragino Sans GB",sans-serif;
+    font-size:14.5px; line-height:1.75;
+  }
+  .page{max-width:920px; margin:0 auto; background:var(--bg); padding:0 0 48px;
+        box-shadow:0 2px 24px rgba(20,40,70,.12);}
+  .cover{background:linear-gradient(115deg,#0d3a61 0%,#14507f 55%,#1b6ca8 100%);
+         color:#fff; padding:34px 46px 26px; position:relative; overflow:hidden;}
+  .cover::after{content:""; position:absolute; right:-70px; top:-70px; width:260px;height:260px;
+         border:1px solid rgba(255,255,255,.16); border-radius:50%;}
+  .cover .kicker{font-size:12px; letter-spacing:.22em; color:#a8cbe8; margin-bottom:14px;}
+  .cover h1{font-size:26px; line-height:1.35; margin:0 0 6px; font-weight:700; letter-spacing:.01em;}
+  .cover h1 small{display:block; font-size:14px; font-weight:400; color:#c9def0; margin-top:8px; letter-spacing:.04em;}
+  .cover .stamp{display:inline-block; margin-top:16px; border:1px solid rgba(255,255,255,.45);
+        padding:3px 12px; font-size:12px; letter-spacing:.12em; color:#e4f0fa;}
+  table.meta{width:100%; border-collapse:collapse; font-size:12.5px; margin:0; background:#fbfcfd;}
+  table.meta td{border:1px solid #dfe6ed; padding:7px 14px; color:var(--ink2);}
+  table.meta td.k{background:#f2f5f8; color:var(--muted); width:88px; white-space:nowrap;}
+  .body{padding:0 46px;}
+  h2{font-size:17px; margin:38px 0 14px; padding-left:12px; border-left:4px solid var(--accent);
+     color:var(--accent); letter-spacing:.03em;}
+  h3{font-size:14.5px; margin:22px 0 8px; color:var(--ink2);}
+  p{margin:9px 0; text-align:justify;}
+  .muted{color:var(--muted);}
+  table.t{width:100%; border-collapse:collapse; font-size:13px; margin:12px 0 6px;}
+  table.t th{background:#eef3f8; color:var(--accent); font-weight:600; text-align:left;
+             border:1px solid #d5dee7; padding:7px 9px; font-size:12.5px;}
+  table.t td{border:1px solid #dde4eb; padding:7px 9px; vertical-align:top;}
+  table.t tr:nth-child(even) td{background:#fafcfd;}
+  table.t td.c,table.t th.c{text-align:center;}
+  table.t td.n{text-align:right; font-variant-numeric:tabular-nums;}
+  .ng{color:var(--bad); font-weight:600;}
+  .okc{color:var(--ok); font-weight:600;}
+  figure{margin:18px 0 8px; padding:14px 12px 8px; background:#fbfcfd; border:1px solid #e2e9f0;}
+  figure svg{display:block; margin:0 auto; max-width:100%; height:auto; background:#fff;}
+  figcaption{font-size:12px; color:var(--muted); text-align:center; margin-top:8px;}
+  .note{background:#f6f9fc; border-left:3px solid #9db6cc; padding:10px 14px; font-size:13px;
+        margin:14px 0; color:var(--ink2);}
+  .note.warn{background:#fdf6ee; border-left-color:#d9a15e;}
+  .formula{font-family:"Consolas","Courier New",monospace; font-size:13px; background:#f4f7fa;
+           padding:8px 12px; border:1px dashed #c9d5e0; margin:8px 0; color:var(--ink2); overflow-x:auto;}
+  .foot{border-top:1px solid var(--line); margin-top:40px; padding:14px 46px 0;
+        font-size:11.5px; color:var(--muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;}
+  @media print{ body{background:#fff; padding:0;} .page{box-shadow:none; max-width:none;} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cover">
+    <div class="kicker">AP1000 · 主控室 117&prime; 标高 · 设备改造</div>
+    <h1>电散热器底托式支架方案<small>抗震计算书与安装图（纯底部支撑，替代原"下支撑 + 上拉结"方案）</small></h1>
+    <div class="stamp">SSE 等效静力法 · 0.3g / 0.2g · Ω = 2.0</div>
+  </div>
+  <table class="meta">
+    <tr><td class="k">文件编号</td><td>HTR-SUP-R2（第 2 版：底部支撑方案）</td><td class="k">日期</td><td>2026-11-04</td></tr>
+    <tr><td class="k">适用设备</td><td>电散热器 2 台，30 kg/台，带原底部支架总高约 800 mm</td><td class="k">材料</td><td>304L（S30403）</td></tr>
+    <tr><td class="k">安装位置</td><td>主控室 117&prime; 标高，混凝土墙</td><td class="k">离墙距离</td><td>混凝土墙面 → 设备背面：210 mm（2#）/ 130 mm（1#）</td></tr>
+    <tr><td class="k">计算方法</td><td colspan="3">等效静力法：水平 0.3g、竖向 0.2g，放大系数 Ω=2.0（刚性附件包络），许用应力法（0.6·S<sub>y</sub>）</td></tr>
+  </table>
+
+  <div class="body">
+
+  <h2>一、方案变更说明</h2>
+  <p><b>变更原因：</b>经现场核实，原设备安装图仅为底部支撑——<b>设备背部与侧面均无可利用的固定点</b>。此前版本（HTR-SUP-R1）采用的"下部承重支架 + 上部拉结支架"四点固定方案不再成立：上部拉结无处生根。</p>
+  <p><b>约束条件（已与业主确认）：</b>① 设备底部距装修完成地面净空 &lt; 450 mm，<b>无加设斜撑的空间</b>；② 装修面板上开孔 <b>尽量少</b>；③ 设备<b>底部有与原支架连接的 M6 螺纹孔</b>（每侧 2 孔，间距 123 mm），倾覆力偶可由此传递。</p>
+  <p><b>新方案（本版）：</b>取消上部拉结，改为<b>纯悬臂底托式支架</b>——每台设备由 2 根从混凝土墙直接悬挑的闭口方管（□50×50×3，304L）托底，方管顶面通过原底部 M6 螺纹孔与设备连接。倾覆力矩全部由悬臂根部锚栓群承担。</p>
+  <div class="note warn">
+    <b>为什么悬臂主体改用方管、不能沿用 3 mm 折弯板：</b>纯底部支撑下，地震水平力作用点距支撑面 400 mm，面内（平行墙）工况还需叠加两臂间的滚转力偶，根部弯矩达 116.9 N·m/支。若仍用 3 mm 折弯 U 形开口截面：组合应力约 86.7 MPa（利用率 85%），且摇摆频率约 19 Hz，落入楼层反应谱放大概率较大的频段，抗震裕度不足。<b>改用闭口方管后：应力 17.9 MPa（利用率 18%），摇摆频率约 35 Hz（刚性区）</b>。壁厚 3 mm 与原板材同规格，牌号仍为 304L；原支架的 3 mm 板材可改制为垫板与封板等配件。
+  </div>
+
+  <h2>二、设计输入与计算假定</h2>
+  <table class="t">
+    <tr><th style="width:170px">项目</th><th style="width:230px">取值</th><th>依据 / 说明</th></tr>
+    <tr><td>设备重量</td><td>30 kg/台</td><td>业主提供</td></tr>
+    <tr><td>计算总重（含支架）</td><td style="white-space:nowrap">35 kg，G = 343.4 N</td><td>支架自重约 5 kg/台</td></tr>
+    <tr><td>地震输入</td><td style="white-space:nowrap">水平 0.3g，竖向 0.2g</td><td>AP1000 SSE 等效静力（业主确认），刚性附件包络 Ω = 2.0</td></tr>
+    <tr><td>水平地震力 F<sub>h</sub> / 竖向 F<sub>v</sub></td><td style="white-space:nowrap">206.0 N / 137.3 N</td><td>35 kg × 0.3g（0.2g）× 2.0</td></tr>
+    <tr><td>竖向合计 V</td><td>480.7 N</td><td>G + F<sub>v</sub>（竖向地震向下工况）</td></tr>
+    <tr><td>重心位置</td><td style="white-space:nowrap">距混凝土墙面 311.5 mm（2#）/ 231.5 mm（1#）；距支撑面 400 mm</td><td>设备几何中心，含支架按总高 800 mm 折算</td></tr>
+    <tr><td>支架布置</td><td>每台 2 根悬臂方管，横向间距 610 mm</td><td>同原底部支架中心距</td></tr>
+    <tr><td>材料</td><td style="white-space:nowrap">304L（S30403）：S<sub>y</sub>=170 MPa，S<sub>u</sub>=485 MPa</td><td>悬臂方管 □50×50×3、底板 100×180×8、垫板 50×80×6</td></tr>
+    <tr><td>许用应力</td><td>母材 102 MPa（0.6·S<sub>y</sub>）；角焊缝 48 MPa（0.28·S<sub>y</sub>）</td><td>许用应力法（AISC ASD 类比）</td></tr>
+    <tr><td>锚固基础</td><td>混凝土墙 C25（保守），M10 化学锚栓埋深 ≥90 mm</td><td>穿过装修层后的结构墙；实测强度待确认</td></tr>
+  </table>
+  <p class="muted">假定 210 / 130 mm 为<b>混凝土墙面到设备背面</b>的距离，对应装修层总厚 180 / 100 mm，改造后设备背面距装修完成面仍保持 30 mm 净距。</p>
+
+  <h2>三、方案布置与传力路径</h2>
+  <p>每台设备 2 根悬臂方管（件1），根部焊接 100×180×8 底板，底板贴混凝土墙面、藏在装修面板之后，每板 4-M10×100 化学锚栓直接锚入结构墙。方管穿过面板上 110×200 的矩形孔伸出，顶面焊接 50×80×6 垫板并与设备底面齐平，用原底部螺纹孔连接——方管上下壁与垫板对钻 2-Ø7 通孔，<b>M6×35 螺栓由下向上穿入设备底部螺纹孔</b>（闭口方管内无法放置螺母，栓头与垫圈留在方管底面下方）。1#（离墙 130）仅方管长度不同，截面与锚固完全相同。</p>
+  <figure>
+  <svg viewBox="0 0 680 480" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="h1c" width="9" height="9" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="9" stroke="#b9c3cd" stroke-width="1"/></pattern>
+      <pattern id="h1p" width="10" height="10" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="10" y2="2" stroke="#d8c6a6" stroke-width="1"/></pattern>
+      <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4a5a68"/></marker>
+    </defs>
+    <text x="20" y="16" font-size="12" fill="#14507f" font-weight="600">安装剖面（2#：混凝土墙面 → 设备背面 210）</text>
+
+    <rect x="60" y="25" width="70" height="380" fill="url(#h1c)" stroke="#333" stroke-width="1.4"/>
+    <line x1="130" y1="25" x2="130" y2="405" stroke="#333" stroke-width="2.2"/>
+    <rect x="130" y="25" width="108" height="150" fill="url(#h1p)" stroke="#b8a077" stroke-width="1.2"/>
+    <rect x="130" y="375" width="108" height="30" fill="url(#h1p)" stroke="#b8a077" stroke-width="1.2"/>
+    <rect x="130" y="175" width="108" height="200" fill="none" stroke="#8a6d3b" stroke-width="1" stroke-dasharray="4 3"/>
+
+    <rect x="122" y="185" width="8" height="180" fill="#c8d2dc" stroke="#333" stroke-width="1"/>
+    <rect x="130" y="250" width="228" height="50" fill="#aab4be" stroke="#333" stroke-width="1.2"/>
+    <rect x="262" y="246" width="96" height="4" fill="#8f9aa5" stroke="#333" stroke-width="0.8"/>
+
+    <rect x="256" y="26" width="122" height="224" fill="#eaf2fa" stroke="#14507f" stroke-width="1.6"/>
+    <line x1="262" y1="60" x2="372" y2="60" stroke="#c5d8ea" stroke-width="1"/>
+    <line x1="262" y1="110" x2="372" y2="110" stroke="#c5d8ea" stroke-width="1"/>
+    <line x1="262" y1="160" x2="372" y2="160" stroke="#c5d8ea" stroke-width="1"/>
+    <text x="317" y="45" font-size="11" fill="#14507f" text-anchor="middle">电散热器</text>
+
+    <circle cx="317" cy="132" r="4" fill="#1b2430"/>
+    <line x1="309" y1="132" x2="325" y2="132" stroke="#1b2430" stroke-width="1"/>
+    <line x1="317" y1="124" x2="317" y2="140" stroke="#1b2430" stroke-width="1"/>
+    <text x="326" y="128" font-size="10.5" fill="#1b2430">重心</text>
+
+    <line x1="122" y1="225" x2="68" y2="225" stroke="#5a6874" stroke-width="2.5"/>
+    <rect x="108" y="219" width="14" height="12" fill="#6c7a89"/>
+    <line x1="122" y1="325" x2="68" y2="325" stroke="#5a6874" stroke-width="2.5"/>
+    <rect x="108" y="319" width="14" height="12" fill="#6c7a89"/>
+
+    <line x1="280" y1="246" x2="280" y2="305" stroke="#b3541e" stroke-width="1.5" stroke-dasharray="3 2"/>
+    <rect x="273" y="305" width="14" height="5" fill="#b3541e"/>
+    <line x1="354" y1="246" x2="354" y2="305" stroke="#b3541e" stroke-width="1.5" stroke-dasharray="3 2"/>
+    <rect x="347" y="305" width="14" height="5" fill="#b3541e"/>
+
+    <text x="184" y="192" font-size="10.5" fill="#8a6d3b" text-anchor="middle">面板开</text>
+    <text x="184" y="206" font-size="10.5" fill="#8a6d3b" text-anchor="middle">110×200</text>
+    <text x="184" y="100" font-size="10.5" fill="#8a6d3b" text-anchor="middle" transform="rotate(-90,184,100)">装修层 180</text>
+
+    <line x1="130" y1="445" x2="256" y2="445" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a1)" marker-end="url(#a1)"/>
+    <line x1="130" y1="405" x2="130" y2="450" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="256" y1="252" x2="256" y2="450" stroke="#8d99a6" stroke-width="0.7" stroke-dasharray="4 3"/>
+    <text x="193" y="440" font-size="12.5" fill="#1b2430" text-anchor="middle">210</text>
+    <line x1="238" y1="418" x2="256" y2="418" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a1)" marker-end="url(#a1)"/>
+    <line x1="238" y1="377" x2="238" y2="422" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="262" y="423" font-size="11" fill="#1b2430">30 净距</text>
+
+    <line x1="44" y1="225" x2="44" y2="325" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a1)" marker-end="url(#a1)"/>
+    <line x1="106" y1="225" x2="40" y2="225" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="106" y1="325" x2="40" y2="325" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="36" y="275" font-size="11.5" fill="#1b2430" text-anchor="middle" transform="rotate(-90,36,275)">140</text>
+
+    <line x1="420" y1="132" x2="420" y2="250" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a1)" marker-end="url(#a1)"/>
+    <line x1="321" y1="132" x2="426" y2="132" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="360" y1="250" x2="426" y2="250" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="412" y="191" font-size="11.5" fill="#1b2430" text-anchor="middle" transform="rotate(-90,412,191)">400</text>
+
+    <g font-size="11" fill="#3d4b5a">
+      <text x="460" y="250">□50×50×3 方管（304L）</text>
+      <line x1="458" y1="246" x2="312" y2="256" stroke="#8d99a6" stroke-width="0.8"/>
+      <text x="460" y="278">垫板 50×80×6</text>
+      <line x1="458" y1="274" x2="360" y2="247" stroke="#8d99a6" stroke-width="0.8"/>
+      <text x="460" y="306">2-M6×35 由下向上穿入</text>
+      <text x="460" y="322">设备底部螺纹孔（2 孔 @123）</text>
+      <line x1="458" y1="302" x2="356" y2="266" stroke="#8d99a6" stroke-width="0.8"/>
+      <text x="460" y="352">底板 100×180×8（藏于面板后）</text>
+      <line x1="458" y1="348" x2="134" y2="350" stroke="#8d99a6" stroke-width="0.8"/>
+      <text x="460" y="380">4-M10×100 化学锚栓 埋深≥90</text>
+      <line x1="458" y1="376" x2="115" y2="325" stroke="#8d99a6" stroke-width="0.8"/>
+      <text x="460" y="408">装修面板（完成面）</text>
+      <line x1="458" y1="404" x2="200" y2="392" stroke="#8d99a6" stroke-width="0.8"/>
+      <text x="460" y="436">混凝土结构墙</text>
+      <line x1="458" y1="432" x2="95" y2="398" stroke="#8d99a6" stroke-width="0.8"/>
+    </g>
+    <text x="20" y="472" font-size="10" fill="#8d99a6">示意，竖向未按比例；螺栓中心距 123，距墙 250/373</text>
+  </svg>
+  <figcaption>图 1　底托式支架安装剖面（2#，离墙 210）</figcaption>
+  </figure>
+  <p><b>传力路径：</b>竖向荷载（G、F<sub>v</sub>）→ 方管受弯/受剪 → 根部底板 → 锚栓剪力与混凝土承压；水平地震（垂直墙面）→ 设备底部螺栓对传递倾覆力偶 → 方管弯矩 → 根部锚栓群上排受拉、下排承压；水平地震（平行墙面）→ 两臂（间距 610）形成竖向力偶抵抗滚转。设备自身<b>不设置任何背部、侧面固定点</b>，全部地震效应经底面单一平面传入支架。</p>
+  <figure>
+  <svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="h2c" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="8" stroke="#c3ccd5" stroke-width="1"/></pattern>
+      <marker id="a2o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b3541e"/></marker>
+      <marker id="a2b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#14507f"/></marker>
+      <marker id="a2g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4a5a68"/></marker>
+    </defs>
+    <text x="20" y="16" font-size="12" fill="#14507f" font-weight="600">计算简图（单支支架，2# 最不利）</text>
+
+    <rect x="100" y="25" width="40" height="315" fill="url(#h2c)" stroke="#333" stroke-width="1.4"/>
+    <line x1="140" y1="25" x2="140" y2="340" stroke="#333" stroke-width="2.4"/>
+    <line x1="60" y1="340" x2="560" y2="340" stroke="#333" stroke-width="1.8"/>
+    <g stroke="#c3ccd5" stroke-width="1">
+      <line x1="70" y1="340" x2="60" y2="350"/><line x1="100" y1="340" x2="90" y2="350"/>
+      <line x1="130" y1="340" x2="120" y2="350"/><line x1="160" y1="340" x2="150" y2="350"/>
+      <line x1="190" y1="340" x2="180" y2="350"/>
+    </g>
+
+    <rect x="140" y="217" width="8" height="180" fill="#c8d2dc" stroke="#333" stroke-width="1"/>
+    <rect x="148" y="290" width="171" height="35" fill="#aab4be" stroke="#333" stroke-width="1.2"/>
+    <rect x="234" y="40" width="91" height="250" fill="#eaf2fa" stroke="#14507f" stroke-width="1.6"/>
+
+    <circle cx="280" cy="165" r="4" fill="#1b2430"/>
+    <line x1="280" y1="165" x2="212" y2="165" stroke="#b3541e" stroke-width="2.2" marker-end="url(#a2o)"/>
+    <text x="150" y="150" font-size="11" fill="#b3541e">F&#8202;h = 206 N</text>
+    <line x1="280" y1="165" x2="280" y2="238" stroke="#b3541e" stroke-width="2.2" marker-end="url(#a2o)"/>
+    <text x="228" y="212" font-size="11" fill="#b3541e" text-anchor="end">G + F&#8202;v = 481 N</text>
+
+    <path d="M 173,228 A 12 12 0 1 1 172.9,228" fill="none" stroke="#4a5a68" stroke-width="1.6" marker-end="url(#a2g)"/>
+    <text x="200" y="266" font-size="10.5" fill="#3d4b5a" text-anchor="middle">M=116.9</text>
+    <text x="200" y="279" font-size="10" fill="#3d4b5a" text-anchor="middle">N·m/支</text>
+
+    <line x1="250" y1="330" x2="250" y2="358" stroke="#b3541e" stroke-width="2" marker-end="url(#a2o)"/>
+    <text x="258" y="368" font-size="11" fill="#b3541e">R = 375 N</text>
+
+    <line x1="100" y1="240" x2="80" y2="240" stroke="#14507f" stroke-width="2" marker-end="url(#a2b)"/>
+    <text x="4" y="232" font-size="10.5" fill="#14507f">T = 418 N/栓</text>
+
+    <text x="390" y="285" font-size="11" fill="#3d4b5a">底部螺栓力偶 ±335 N</text>
+    <line x1="386" y1="289" x2="318" y2="291" stroke="#8d99a6" stroke-width="0.8"/>
+
+    <line x1="140" y1="36" x2="280" y2="36" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a2g)" marker-end="url(#a2g)"/>
+    <line x1="280" y1="42" x2="280" y2="33" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="140" y1="25" x2="140" y2="40" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="196" y="31" font-size="11.5" fill="#1b2430" text-anchor="middle">311.5</text>
+    <text x="292" y="31" font-size="10" fill="#6c7a89">至重心</text>
+
+    <line x1="350" y1="165" x2="350" y2="290" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a2g)" marker-end="url(#a2g)"/>
+    <line x1="286" y1="165" x2="356" y2="165" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="319" y1="290" x2="356" y2="290" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="343" y="227" font-size="11.5" fill="#1b2430" text-anchor="middle" transform="rotate(-90,343,227)">400</text>
+
+    <line x1="140" y1="380" x2="234" y2="380" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a2g)" marker-end="url(#a2g)"/>
+    <line x1="140" y1="340" x2="140" y2="384" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="234" y1="326" x2="234" y2="384" stroke="#8d99a6" stroke-width="0.7" stroke-dasharray="4 3"/>
+    <text x="187" y="375" font-size="12.5" fill="#1b2430" text-anchor="middle">210</text>
+
+    <text x="400" y="60" font-size="10.5" fill="#6c7a89">每台 2 支支架，间距 610；</text>
+    <text x="400" y="76" font-size="10.5" fill="#6c7a89">面内工况另计滚转力偶 ±135 N/臂</text>
+    <text x="400" y="96" font-size="10.5" fill="#6c7a89">下排锚栓承压 835 N（板—混凝土）</text>
+  </svg>
+  <figcaption>图 2　纯底部支撑传力路径与反力（工况②包络）</figcaption>
+  </figure>
+
+  <h2>四、抗震与强度计算</h2>
+  <h3>4.1 荷载与工况</h3>
+  <table class="t">
+    <tr><th>工况</th><th class="c">方向</th><th class="c">每臂竖向力 P<sub>z</sub></th><th class="c">每臂水平力</th><th class="c">说明</th></tr>
+    <tr><td>① 面外（垂直墙面）</td><td class="c">+x</td><td class="c n">240.4 N</td><td class="c n">103 N</td><td>水平力在支撑面上方 400 mm 处作用，以底部螺栓力偶 ±335 N 传入臂端</td></tr>
+    <tr><td>② 面内（平行墙面）＋滚转</td><td class="c">±y</td><td class="c n">375.4 N</td><td class="c n">103 N</td><td>滚转力偶 82.4 N·m 由两臂竖向力偶 ±135 N 抵抗（臂距 610）</td></tr>
+    <tr><td>③ 上拔（竖向地震向上）</td><td class="c">−z</td><td class="c n">−32 N</td><td class="c n">—</td><td>G−F<sub>v</sub> 叠加滚转，M6 螺栓需抗轻微上拔，锚栓反向受力均 &lt;100 N</td></tr>
+  </table>
+
+  <h3>4.2 悬臂方管内力与应力（2# 最不利）</h3>
+  <div class="formula">截面：□50×50×3　A = 564 mm²　I = 208 492 mm⁴　W = 8 340 mm³<br>
+  工况②包络：M<sub>x</sub> = 375.4 N × 311.5 mm = <b>116.9 N·m</b>；M<sub>y</sub> = 103 N × 311.5 mm = <b>32.1 N·m</b><br>
+  σ = (116.9 + 32.1)×10³ / 8 340 = <b>17.9 MPa ≤ 102 MPa</b>　利用率 <b>18%</b></div>
+  <p>1#（离墙 130）：M<sub>x</sub> = 86.8 N·m，σ = 14.3 MPa，利用率 14%。两台共用同一截面，1# 富余更大。</p>
+
+  <h3>4.3 设备底部 M6 连接螺栓（2-M6×35/侧，由下向上穿入）</h3>
+  <div class="formula">工况①倾覆力偶：41.2 N·m / 臂 → 螺栓对竖向力 = 41.2×10³/123 = <b>335 N</b><br>
+  受拉校核：335 N / (0.5×170 MPa × 20.1 mm² = 1 709 N) = <b>20%</b><br>
+  叠加剪力 51.5 N/栓，组合利用率 ≈ <b>25%</b> ✔</div>
+  <p class="muted">螺栓须为 304L 全螺纹杆，穿方管上下壁 Ø7 通孔后拧入设备底部螺纹孔 ≥20 mm，头部加平垫+弹垫防松（位于方管底面下方）。工况③的上拔力 32 N 亦由该螺栓承担（&lt;2%）。</p>
+
+  <h3>4.4 根部角焊缝（方管周边焊于底板，h<sub>f</sub> = 3）</h3>
+  <div class="formula">两条立焊缝（有效截面）：I<sub>w</sub> = 2×(0.707×3×50×25²) = 1.33×10⁵ mm⁴<br>
+  σ<sub>w</sub> = 116.9×10³×25 / 1.33×10⁵ = <b>22.0 MPa</b>；τ<sub>w</sub> = 375/(2×0.707×3×50) = <b>1.8 MPa</b>　≤ 48 MPa ✔</div>
+
+  <h3>4.5 底板与锚栓</h3>
+  <div class="formula">底板 100×180×8，锚栓 4-M10 布置 60（水平）×140（竖向）<br>
+  根部弯矩 → 锚栓群力偶 = 116.9/0.14 = 835 N → <b>上排每栓拉力 418 N</b>，下排承压 835 N（板-混凝土面承压 σ ≈ 0.06 MPa）<br>
+  每栓剪力 = √(375² + 103²)/4 ≈ 98 N<br>
+  M10 化学锚栓（C25、埋深 90）：设计拉力 ≈ 5 300 N，剪力 ≈ 4 600 N<br>
+  组合利用率 = 418/5300 + 98/4600 ≈ <b>11%</b> ✔（撬力已按 8 mm 板、边距 20 mm 复核，计入后仍 &lt;15%）</div>
+
+  <h3>4.6 变形与刚度（摇摆频率）</h3>
+  <div class="formula">静载竖向挠度 δ = 240×311.5³/(3EI) ≈ <b>0.06 mm</b><br>
+  SSE 下根部转角 θ = 116.9×10³×311.5/(EI) = 8.7×10⁻⁴ rad → 设备顶部位移 ≈ <b>0.7 mm</b><br>
+  摇摆频率 f = (1/2π)·√(2EI/L / (m·h²)) ≈ <b>35 Hz</b>（&gt; 33 Hz，刚性附件，Ω=2.0 包络成立）</div>
+
+  <h3>4.7 抗震能力包络</h3>
+  <p>按线弹性换算，本方案母材可承受约 <span class="okc"><b>102/17.9 = 5.7 倍</b></span>设计地震（相当于等效静力约 1.7g），足以包络 117&prime; 标高刚性附件可能出现的零周期加速度放大；若实测楼层反应谱 ZPA 超过 1.7g，需按实际谱值重新复核。</p>
+
+  <h2>五、支架详图</h2>
+  <p>件1 悬臂方管支架共 4 件：2# 两件方管长 380 mm（自混凝土墙面），1# 两件长 300 mm；底板、垫板、锚栓布置完全相同。方管端部焊 50×50×3 封板。原支架拆除的 3 mm 304L 板可改制垫板与封板。</p>
+  <figure>
+  <svg viewBox="0 0 720 660" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4a5a68"/></marker>
+    </defs>
+    <text x="20" y="16" font-size="12" fill="#14507f" font-weight="600">件1 悬臂方管支架详图（示 2#，方管 L=380；1# 仅 L=300）</text>
+
+    <text x="240" y="50" font-size="12" fill="#14507f" font-weight="600">侧视图</text>
+    <rect x="70" y="60" width="8" height="180" fill="#c8d2dc" stroke="#333" stroke-width="1"/>
+    <rect x="78" y="135" width="380" height="50" fill="#aab4be" stroke="#333" stroke-width="1.2"/>
+    <rect x="458" y="133" width="4" height="54" fill="#8f9aa5" stroke="#333" stroke-width="0.8"/>
+    <rect x="262" y="131" width="96" height="4" fill="#8f9aa5" stroke="#333" stroke-width="0.8"/>
+    <line x1="70" y1="95" x2="24" y2="95" stroke="#5a6874" stroke-width="2.5"/>
+    <rect x="56" y="89" width="14" height="12" fill="#6c7a89"/>
+    <line x1="70" y1="205" x2="24" y2="205" stroke="#5a6874" stroke-width="2.5"/>
+    <rect x="56" y="199" width="14" height="12" fill="#6c7a89"/>
+    <g stroke="#b3541e" stroke-width="1.5" stroke-dasharray="3 2">
+      <line x1="328" y1="131" x2="328" y2="196"/><line x1="451" y1="131" x2="451" y2="196"/>
+    </g>
+    <rect x="321" y="185" width="14" height="6" fill="#b3541e"/>
+    <rect x="444" y="185" width="14" height="6" fill="#b3541e"/>
+    <path d="M 78,135 L 78,145 L 88,135 Z" fill="#1b2430"/>
+    <text x="104" y="127" font-size="10.5" fill="#3d4b5a">角焊缝 h3（周边满焊）</text>
+    <line x1="102" y1="131" x2="82" y2="139" stroke="#8d99a6" stroke-width="0.8"/>
+
+    <line x1="78" y1="115" x2="328" y2="115" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a3)" marker-end="url(#a3)"/>
+    <line x1="328" y1="131" x2="328" y2="112" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="203" y="110" font-size="11.5" fill="#1b2430" text-anchor="middle">250</text>
+    <line x1="328" y1="95" x2="451" y2="95" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a3)" marker-end="url(#a3)"/>
+    <line x1="451" y1="131" x2="451" y2="92" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="389" y="90" font-size="11.5" fill="#1b2430" text-anchor="middle">123</text>
+    <line x1="78" y1="228" x2="458" y2="228" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a3)" marker-end="url(#a3)"/>
+    <line x1="78" y1="185" x2="78" y2="231" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="458" y1="187" x2="458" y2="231" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="268" y="245" font-size="11.5" fill="#1b2430" text-anchor="middle">380（自混凝土墙面，1# 为 300）</text>
+    <line x1="48" y1="60" x2="48" y2="240" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a3)" marker-end="url(#a3)"/>
+    <line x1="70" y1="60" x2="44" y2="60" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="70" y1="240" x2="44" y2="240" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="40" y="150" font-size="11.5" fill="#1b2430" text-anchor="middle" transform="rotate(-90,40,150)">180</text>
+
+    <text x="240" y="272" font-size="12" fill="#14507f" font-weight="600">俯视图</text>
+    <rect x="78" y="285" width="380" height="50" fill="#aab4be" stroke="#333" stroke-width="1.2"/>
+    <rect x="262" y="283" width="96" height="54" fill="none" stroke="#8a6d3b" stroke-width="1" stroke-dasharray="4 3"/>
+    <circle cx="328" cy="310" r="4" fill="#fff" stroke="#b3541e" stroke-width="1.4"/>
+    <circle cx="451" cy="310" r="4" fill="#fff" stroke="#b3541e" stroke-width="1.4"/>
+    <line x1="320" y1="310" x2="336" y2="310" stroke="#b3541e" stroke-width="0.8"/>
+    <line x1="328" y1="302" x2="328" y2="318" stroke="#b3541e" stroke-width="0.8"/>
+    <line x1="443" y1="310" x2="459" y2="310" stroke="#b3541e" stroke-width="0.8"/>
+    <line x1="451" y1="302" x2="451" y2="318" stroke="#b3541e" stroke-width="0.8"/>
+    <line x1="58" y1="285" x2="58" y2="335" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a3)" marker-end="url(#a3)"/>
+    <line x1="78" y1="285" x2="54" y2="285" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="78" y1="335" x2="54" y2="335" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="50" y="310" font-size="11.5" fill="#1b2430" text-anchor="middle" transform="rotate(-90,50,310)">50</text>
+    <line x1="328" y1="352" x2="451" y2="352" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a3)" marker-end="url(#a3)"/>
+    <text x="389" y="367" font-size="11.5" fill="#1b2430" text-anchor="middle">123</text>
+    <text x="120" y="394" font-size="10.5" fill="#6c7a89">虚线框为垫板 50×80×6（2-Ø7，与方管上下壁孔对齐）</text>
+
+    <text x="70" y="412" font-size="12" fill="#14507f" font-weight="600">底板（4-Ø11，厚 8）</text>
+    <rect x="70" y="440" width="100" height="180" fill="#c8d2dc" stroke="#333" stroke-width="1.2"/>
+    <circle cx="90" cy="460" r="4.5" fill="#fff" stroke="#333" stroke-width="1.2"/>
+    <circle cx="150" cy="460" r="4.5" fill="#fff" stroke="#333" stroke-width="1.2"/>
+    <circle cx="90" cy="600" r="4.5" fill="#fff" stroke="#333" stroke-width="1.2"/>
+    <circle cx="150" cy="600" r="4.5" fill="#fff" stroke="#333" stroke-width="1.2"/>
+    <line x1="90" y1="428" x2="150" y2="428" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a3)" marker-end="url(#a3)"/>
+    <line x1="90" y1="456" x2="90" y2="424" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="150" y1="456" x2="150" y2="424" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="156" y="433" font-size="11.5" fill="#1b2430">60</text>
+    <line x1="192" y1="460" x2="192" y2="600" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a3)" marker-end="url(#a3)"/>
+    <line x1="154" y1="460" x2="196" y2="460" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="154" y1="600" x2="196" y2="600" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="188" y="530" font-size="11.5" fill="#1b2430" text-anchor="middle" transform="rotate(-90,188,530)">140</text>
+    <line x1="70" y1="648" x2="170" y2="648" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a3)" marker-end="url(#a3)"/>
+    <line x1="70" y1="620" x2="70" y2="652" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="170" y1="620" x2="170" y2="652" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="120" y="643" font-size="11.5" fill="#1b2430" text-anchor="middle">100</text>
+    <line x1="48" y1="440" x2="48" y2="620" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a3)" marker-end="url(#a3)"/>
+    <line x1="68" y1="440" x2="44" y2="440" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="68" y1="620" x2="44" y2="620" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="40" y="530" font-size="11.5" fill="#1b2430" text-anchor="middle" transform="rotate(-90,40,530)">180</text>
+
+    <text x="400" y="424" font-size="12" fill="#14507f" font-weight="600" text-anchor="middle">A–A 截面（2:1）</text>
+    <rect x="330" y="438" width="140" height="12" fill="#8f9aa5" stroke="#333" stroke-width="1"/>
+    <rect x="350" y="450" width="100" height="100" fill="#aab4be" stroke="#333" stroke-width="1.4"/>
+    <rect x="356" y="456" width="88" height="88" fill="#fff" stroke="#333" stroke-width="1"/>
+    <line x1="400" y1="438" x2="400" y2="562" stroke="#b3541e" stroke-width="1" stroke-dasharray="3 2"/>
+    <circle cx="400" cy="446" r="7" fill="none" stroke="#b3541e" stroke-width="1.3" stroke-dasharray="3 2"/>
+    <circle cx="400" cy="553" r="7" fill="none" stroke="#b3541e" stroke-width="1.3" stroke-dasharray="3 2"/>
+    <line x1="350" y1="575" x2="450" y2="575" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a3)" marker-end="url(#a3)"/>
+    <line x1="350" y1="552" x2="350" y2="578" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="450" y1="552" x2="450" y2="578" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="400" y="592" font-size="11.5" fill="#1b2430" text-anchor="middle">50</text>
+    <line x1="487" y1="450" x2="487" y2="550" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a3)" marker-end="url(#a3)"/>
+    <line x1="452" y1="450" x2="491" y2="450" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="452" y1="550" x2="491" y2="550" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="495" y="500" font-size="11.5" fill="#1b2430" transform="rotate(-90,495,500)">50</text>
+    <text x="540" y="470" font-size="10.5" fill="#3d4b5a">壁厚 t=3</text>
+    <line x1="536" y1="466" x2="452" y2="452" stroke="#8d99a6" stroke-width="0.8"/>
+    <text x="540" y="440" font-size="10.5" fill="#3d4b5a">垫板 6</text>
+    <line x1="536" y1="444" x2="472" y2="443" stroke="#8d99a6" stroke-width="0.8"/>
+    <text x="540" y="520" font-size="10.5" fill="#3d4b5a">M6×35 由下向上穿入：</text>
+    <text x="540" y="536" font-size="10.5" fill="#3d4b5a">方管上下壁与垫板对钻</text>
+    <text x="540" y="552" font-size="10.5" fill="#3d4b5a">2-Ø7 通孔，头部垫圈</text>
+    <text x="540" y="568" font-size="10.5" fill="#3d4b5a">位于方管底面下方</text>
+    <text x="540" y="600" font-size="10.5" fill="#3d4b5a">端部封板 50×50×3</text>
+  </svg>
+  <figcaption>图 3　悬臂方管支架零件详图（底板 100×180×8、垫板 50×80×6、封板 50×50×3，材质均为 304L）</figcaption>
+  </figure>
+  <p>1#（离墙 130）安装剖面：装修层 100 mm，方管悬臂 300 mm，其余同 2#。</p>
+  <figure>
+  <svg viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="h4c" width="9" height="9" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="9" stroke="#b3bdc7" stroke-width="1.1"/></pattern>
+      <pattern id="h4p" width="10" height="10" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="10" y2="2" stroke="#d8c6a6" stroke-width="1"/></pattern>
+      <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4a5a68"/></marker>
+    </defs>
+    <text x="20" y="16" font-size="12" fill="#14507f" font-weight="600">安装剖面（1#：混凝土墙面 → 设备背面 130）</text>
+
+    <rect x="60" y="25" width="50" height="190" fill="url(#h4c)" stroke="#333" stroke-width="1.3"/>
+    <line x1="110" y1="25" x2="110" y2="215" stroke="#333" stroke-width="2.2"/>
+    <rect x="110" y="25" width="60" height="50" fill="url(#h4p)" stroke="#b8a077" stroke-width="1.2"/>
+    <rect x="110" y="175" width="60" height="40" fill="url(#h4p)" stroke="#b8a077" stroke-width="1.2"/>
+    <rect x="110" y="75" width="60" height="100" fill="none" stroke="#8a6d3b" stroke-width="1" stroke-dasharray="4 3"/>
+
+    <rect x="102" y="37" width="8" height="180" fill="#c8d2dc" stroke="#333" stroke-width="0.9"/>
+    <rect x="110" y="100" width="180" height="50" fill="#aab4be" stroke="#333" stroke-width="1.1"/>
+    <rect x="188" y="20" width="122" height="80" fill="#eaf2fa" stroke="#14507f" stroke-width="1.4"/>
+
+    <text x="140" y="47" font-size="9.5" fill="#8a6d3b" text-anchor="middle">装修层</text>
+    <text x="140" y="61" font-size="9.5" fill="#8a6d3b" text-anchor="middle">t=100</text>
+    <text x="330" y="90" font-size="10.5" fill="#8a6d3b">面板开 110×200 孔，每支架 1 个</text>
+
+    <line x1="110" y1="233" x2="188" y2="233" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a4)" marker-end="url(#a4)"/>
+    <line x1="110" y1="215" x2="110" y2="236" stroke="#8d99a6" stroke-width="0.7"/>
+    <line x1="188" y1="102" x2="188" y2="236" stroke="#8d99a6" stroke-width="0.7" stroke-dasharray="4 3"/>
+    <text x="149" y="228" font-size="12.5" fill="#1b2430" text-anchor="middle">130</text>
+    <line x1="170" y1="198" x2="188" y2="198" stroke="#4a5a68" stroke-width="0.9" marker-start="url(#a4)" marker-end="url(#a4)"/>
+    <line x1="170" y1="177" x2="170" y2="202" stroke="#8d99a6" stroke-width="0.7"/>
+    <text x="194" y="203" font-size="11" fill="#1b2430">30 净距</text>
+
+    <text x="330" y="105" font-size="11" fill="#3d4b5a">支架形式同图 3，</text>
+    <text x="330" y="121" font-size="11" fill="#3d4b5a">方管 L=300、底板与锚栓</text>
+    <text x="330" y="137" font-size="11" fill="#3d4b5a">布置完全相同；</text>
+    <text x="330" y="158" font-size="11" fill="#6c7a89">M = 86.8 N·m/支，</text>
+    <text x="330" y="174" font-size="11" fill="#6c7a89">σ = 14.3 MPa（14%）</text>
+    <line x1="326" y1="130" x2="292" y2="128" stroke="#8d99a6" stroke-width="0.8"/>
+    <text x="330" y="215" font-size="10" fill="#8d99a6">注：设备背面距装修完成面仍保持 30 mm 净距。</text>
+  </svg>
+  <figcaption>图 4　1# 安装剖面（离墙 130）</figcaption>
+  </figure>
+
+  <h2>六、校核汇总</h2>
+  <table class="t">
+    <tr><th>校核项</th><th class="c">需求</th><th class="c">能力 / 许用</th><th class="c">利用率</th><th class="c">结论</th></tr>
+    <tr><td>悬臂方管弯曲（2#，工况②）</td><td class="c n">17.9 MPa</td><td class="c n">102 MPa</td><td class="c n okc">18%</td><td class="c okc">满足</td></tr>
+    <tr><td>悬臂方管弯曲（1#）</td><td class="c n">14.3 MPa</td><td class="c n">102 MPa</td><td class="c n okc">14%</td><td class="c okc">满足</td></tr>
+    <tr><td>设备底 M6 螺栓（拉+剪）</td><td class="c n">335 N / 51.5 N</td><td class="c n">1 709 N / 1 500 N</td><td class="c n okc">25%</td><td class="c okc">满足</td></tr>
+    <tr><td>根部角焊缝 h3</td><td class="c n">22.0 MPa</td><td class="c n">48 MPa</td><td class="c n okc">46%</td><td class="c okc">满足</td></tr>
+    <tr><td>M10 化学锚栓（拉+剪）</td><td class="c n">418 N / 98 N</td><td class="c n">5 300 N / 4 600 N</td><td class="c n okc">11%</td><td class="c okc">满足</td></tr>
+    <tr><td>混凝土承压（底板）</td><td class="c n">835 N</td><td class="c n">σ≈0.06 MPa</td><td class="c n okc">&lt;1%</td><td class="c okc">满足</td></tr>
+    <tr><td>摇摆频率</td><td class="c n">—</td><td class="c n">35 Hz（刚性区）</td><td class="c n">—</td><td class="c okc">刚性附件，谱不再放大</td></tr>
+    <tr><td>静载挠度 / SSE 顶部位移</td><td class="c n">0.06 / 0.7 mm</td><td class="c n">目视与连接无影响</td><td class="c n">—</td><td class="c okc">满足</td></tr>
+    <tr><td>抗震能力包络</td><td class="c n">0.3g×Ω2.0</td><td class="c n">≈1.7g 等效</td><td class="c n okc">5.7 倍</td><td class="c okc">满足</td></tr>
+  </table>
+
+  <h2>七、材料清单（两台合计）</h2>
+  <table class="t">
+    <tr><th>编号</th><th>名称</th><th class="c">规格</th><th class="c">材质</th><th class="c">数量</th><th class="c n">重量</th><th>备注</th></tr>
+    <tr><td>1</td><td>悬臂方管</td><td class="c">□50×50×3，L=380（2#）/ 300（1#）</td><td class="c">304L</td><td class="c">4</td><td class="c n">6.1 kg</td><td>成品方管，外购</td></tr>
+    <tr><td>2</td><td>底板</td><td class="c">100×180×8，4-Ø11</td><td class="c">304L</td><td class="c">4</td><td class="c n">4.5 kg</td><td>外购 8 mm 板</td></tr>
+    <tr><td>3</td><td>垫板</td><td class="c">50×80×6，2-Ø7</td><td class="c">304L</td><td class="c">4</td><td class="c n">0.8 kg</td><td>可由原支架板材改制</td></tr>
+    <tr><td>4</td><td>封板</td><td class="c">50×50×3</td><td class="c">304L</td><td class="c">4</td><td class="c n">0.3 kg</td><td>原支架板材改制</td></tr>
+    <tr><td>5</td><td>化学锚栓</td><td class="c">M10×100，埋深≥90</td><td class="c">304/316</td><td class="c">16</td><td class="c n">—</td><td>配专用药剂管</td></tr>
+    <tr><td>6</td><td>螺栓组件</td><td class="c">M6×35 全螺纹 + 平垫/弹垫</td><td class="c">304L</td><td class="c">8</td><td class="c n">—</td><td>由下向上穿入设备底部螺纹孔</td></tr>
+    <tr><td>7</td><td>装饰盖板（选）</td><td class="c">120×210×1</td><td class="c">304L</td><td class="c">4</td><td class="c n">0.8 kg</td><td>遮盖面板开孔，改善观感</td></tr>
+    <tr><td>8</td><td>焊材</td><td class="c">焊条 A022（E308L-16）</td><td class="c">—</td><td class="c">—</td><td class="c n">—</td><td>角焊缝 h<sub>f</sub>=3</td></tr>
+  </table>
+  <p>新增 304L 材料合计约 <b>12.5 kg</b>（不含盖板）。原支架拆除件（8 件 3 mm 板）中约 1.1 kg 可改制利用，其余按不锈钢废料回收。</p>
+
+  <h2>八、施工要点</h2>
+  <ol>
+    <li><b>拆除：</b>先设临时支撑托住设备再拆原 M6×70 膨胀螺栓；原锚栓很可能打在轻钢龙骨上，拆装修板孔位时注意龙骨回弹。</li>
+    <li><b>面板开孔：</b>按支架中心位置在装修面板开 <b>110×200 矩形孔</b>（每支架 1 个，每台 2 个），孔边打磨去毛刺。</li>
+    <li><b>支架就位：</b>底板（连同焊好的方管）平穿入面板孔、贴紧混凝土面；用水平仪校正方管顶面标高（= 设备底面标高）与离墙尺寸（210/130），临时点固。</li>
+    <li><b>锚栓施工：</b>经面板孔用冲击钻对混凝土钻 4-Ø12×90 孔/板，逐孔吹洗（吹-刷-吹），注入化学锚栓药剂，固化期内严禁扰动。</li>
+    <li><b>紧固：</b>M10 螺母按锚栓产品规定力矩紧固（一般 20~25 N·m），24 h 后复紧一遍。</li>
+    <li><b>设备安装：</b>吊装设备落于两方管垫板上，对准底部螺纹孔，由下向上穿 2-M6×35/侧 拧紧（约 8 N·m，勿过力损伤设备螺纹孔）。</li>
+    <li><b>收尾：</b>方管与面板孔间隙不打胶封闭（留 5 mm 观察缝）或按业主要求加盖装饰板。</li>
+    <li><b>记录：</b>锚栓批号、固化时间、紧固力矩、离墙实测值填入竣工资料。</li>
+  </ol>
+
+  <h2>九、待确认项</h2>
+  <table class="t">
+    <tr><th>#</th><th>事项</th><th>影响</th></tr>
+    <tr><td>1</td><td>设备底部螺纹孔实测（位置、孔径、深度、可否吃 20 mm 螺纹）</td><td>若与假定 2-M6@123 不符，4.3 节与垫板孔位需调整</td></tr>
+    <tr><td>2</td><td>装修层实测厚度是否 180 / 100 mm</td><td>仅影响方管下料长度，截面与锚栓不变</td></tr>
+    <tr><td>3</td><td>混凝土墙强度等级与配筋（按 C25 保守）</td><td>若为砌体或低强度混凝土，锚固方案需重做</td></tr>
+    <tr><td>4</td><td>117&prime; 标高楼层反应谱 ZPA</td><td>超过 1.7g 需按实际谱值重算（当前裕度 5.7 倍）</td></tr>
+    <tr><td>5</td><td>面板开 110×200 孔是否需恢复观感</td><td>决定是否采购装饰盖板</td></tr>
+    <tr><td>6</td><td>是否需第三方抗震鉴定机构独立签署</td><td>程序性事项</td></tr>
+  </table>
+
+  </div><!-- /body -->
+  <div class="foot">
+    <span>HTR-SUP-R2 · 电散热器底托式支架方案</span>
+    <span>2026-11-04 · 设计文件，未经审查不得用于施工</span>
+  </div>
+</div>
+</body>
+</html>
