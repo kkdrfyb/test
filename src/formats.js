@@ -3,7 +3,6 @@ import {
   pdfjsLib,
   ChmFile,
   chmReaderFromBuffer,
-  parseSystemInfo,
   parseToc,
   ChmEnumerateFlags,
 } from '../vendor/books.mjs';
@@ -153,6 +152,84 @@ export function decodeChmText(bytes) {
   return normalizeText(text);
 }
 
+/** 字符串型 #SYSTEM 记录（含结尾 \0）按 UTF-8 严格解码，失败再回退 GB18030。 */
+function decodeChmSystemString(bytes) {
+  let end = bytes.length;
+  while (end > 0 && bytes[end - 1] === 0) end -= 1;
+  const data = bytes.subarray(0, end);
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(data).trim();
+  } catch {
+    return new TextDecoder('gb18030').decode(data).trim();
+  }
+}
+
+const CHM_STRING_FIELDS = {
+  0: 'tocFile', 1: 'indexFile', 2: 'defaultTopic', 3: 'title',
+  4: 'defaultWindow', 5: 'compiledFile', 9: 'compilerVersion', 16: 'defaultFont',
+};
+
+/**
+ * 解析 CHM 的 /#SYSTEM 二进制记录：(code:uint16, len:uint16, data:bytes)*。
+ * chmlib-ts 自带的 parseSystemInfo 固定按 UTF-8 解码字符串，中文老式 CHM 会得到乱码标题，
+ * 因此这里自行解析并做 GB18030 回退。
+ */
+export function parseChmSystem(bytes) {
+  const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const info = {};
+  let offset = 4; // 前 4 字节为版本号
+  while (offset + 4 <= data.length) {
+    const code = view.getUint16(offset, true);
+    const len = view.getUint16(offset + 2, true);
+    if (offset + 4 + len > data.length) break;
+    const field = data.subarray(offset + 4, offset + 4 + len);
+    if ((code === 6 || code === 7) && len >= 4) {
+      info[code === 6 ? 'binaryToc' : 'binaryIndex'] = view.getUint32(offset + 4, true) !== 0;
+    } else if (CHM_STRING_FIELDS[code]) {
+      info[CHM_STRING_FIELDS[code]] = decodeChmSystemString(field);
+    }
+    offset += 4 + len;
+  }
+  // HTML Help Workshop 编译时常常给标题包一层引号
+  if (info.title) info.title = info.title.replace(/^["'\s]+|["'\s]+$/g, '').trim();
+  return info;
+}
+
+/** 从页面原始 HTML 中取出真正的章节名，供无 .hhc 目录的 CHM 生成可读目录。 */
+export function extractHtmlTitle(html) {
+  const raw = String(html).match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1];
+  if (!raw) return null;
+  const title = decodeEntities(raw.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
+  return title && title.length <= 120 ? title : null;
+}
+
+const CHM_PAGE_RE = /\.(x?html?|htm)$/i;
+const CHM_SYSTEM_RE = /(^|\/)(#|\$)/;
+const naturalCompare = new Intl.Collator('zh-Hans-CN', { numeric: true, sensitivity: 'base' }).compare;
+
+/**
+ * 从 CHM 全量枚举结果里挑出可读 HTML 页面并自然排序（01、02、…、10）。
+ * 注意：chmlib-ts 的 ChmEnumerateFlags.Files 单独使用时 matchesFilter 的类型位为 0，
+ * 会过滤掉所有条目，所以调用方必须用 All 枚举后交给本函数筛选。
+ */
+export function collectChmPages(entries, limit = 2000) {
+  const seen = new Set();
+  const pages = [];
+  for (const entry of entries || []) {
+    const path = String(entry?.path || '');
+    if (!CHM_PAGE_RE.test(path) || CHM_SYSTEM_RE.test(path)) continue;
+    const key = path.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    let name = path.split('/').pop().replace(/\.[^.]+$/, '');
+    try { name = decodeURIComponent(name); } catch { /* 保留原始文件名 */ }
+    pages.push({ title: name, local: path, depth: 0 });
+  }
+  pages.sort((a, b) => naturalCompare(a.local, b.local));
+  return pages.slice(0, limit);
+}
+
 /** 移除脚本、外链资源与事件属性；书籍内容属于不可信输入，必须清洗后再写入 DOM。 */
 export function sanitizeHtml(html) {
   let body = String(html).match(/<body\b[^>]*>([\s\S]*?)<\/body>/i)?.[1] ?? String(html);
@@ -245,9 +322,13 @@ async function loadEpub(buffer, fallbackTitle) {
 }
 
 async function loadChm(buffer, fallbackTitle) {
+  const head = new Uint8Array(buffer, 0, Math.min(4, buffer.byteLength));
+  if (String.fromCharCode(...head) !== 'ITSF') {
+    throw new Error('不是有效的 CHM 文件（文件头损坏或已被加密）');
+  }
   const chm = await ChmFile.open(chmReaderFromBuffer(new Uint8Array(buffer)));
   const systemRaw = await chm.getSystemRaw();
-  const info = systemRaw ? parseSystemInfo(systemRaw) : {};
+  const info = systemRaw ? parseChmSystem(systemRaw) : {};
 
   let entries = [];
   if (info.tocFile) {
@@ -257,12 +338,13 @@ async function loadChm(buffer, fallbackTitle) {
       entries = flattenToc(parseToc(hhc).entries).filter((entry) => entry.local);
     }
   }
-  if (!entries.length) {
-    for await (const entry of chm.enumerate(ChmEnumerateFlags.Files)) {
-      if (/\.(x?html?|htm)$/i.test(entry.path)) {
-        entries.push({ title: entry.path.split('/').pop(), local: entry.path, depth: 0 });
-      }
-    }
+  // 老式 CHM（HTML Help Workshop 编译）常常只带二进制目录、没有 .hhc 文本目录，
+  // 这时必须靠归档内 HTML 页面列表兜底。
+  const fromFallback = entries.length === 0;
+  if (fromFallback) {
+    const all = [];
+    for await (const entry of chm.enumerate(ChmEnumerateFlags.All)) all.push(entry);
+    entries = collectChmPages(all);
   }
 
   const assetLoader = async (src, pagePath) => {
@@ -275,12 +357,16 @@ async function loadChm(buffer, fallbackTitle) {
   for (const entry of entries.slice(0, 2000)) {
     const path = normalizeChmPath(entry.local);
     const unit = await chm.resolve(path);
-    const html = unit
-      ? await inlineImages(sanitizeHtml(decodeChmText(await chm.retrieve(unit))), (src) => assetLoader(src, path))
-      : '';
-    chapters.push({ title: `${'　'.repeat(Math.min(entry.depth, 4))}${entry.title}`, html });
+    const raw = unit ? decodeChmText(await chm.retrieve(unit)) : '';
+    const html = await inlineImages(sanitizeHtml(raw), (src) => assetLoader(src, path));
+    // 回退路径的书名用文件名太难读，改用页面 <title>；hhc 目录则尊重原书定义的标题。
+    const title = fromFallback ? (extractHtmlTitle(raw) || entry.title) : entry.title;
+    chapters.push({ title: `${'　'.repeat(Math.min(entry.depth, 4))}${title}`, html });
   }
   if (!chapters.length) throw new Error('CHM 中没有找到可阅读的页面');
+  if (!chapters.some((chapter) => chapter.html.trim())) {
+    throw new Error('CHM 页面内容无法读取，可能使用了不支持的压缩或加密方式');
+  }
   return { title: info.title || fallbackTitle, chapters, total: chapters.length };
 }
 
